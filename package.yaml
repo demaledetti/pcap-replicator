@@ -1,0 +1,56 @@
+name:                pcap-replicator
+version:             0.1.0.0
+github:              "demaledetti/pcap-replicator"
+license:             BSD3
+author:              "Stefano Debenedetti"
+maintainer:          "44903077+demaledetti@users.noreply.github.com"
+copyright:           "2022 Stefano Debenedetti"
+
+extra-source-files:
+- README.md
+
+description:         Please see the README on GitHub at <https://github.com/demaledetti/pcap-replicator#readme>
+
+dependencies:
+- attoparsec
+- base >= 4.7 && < 5
+- binary
+- bytestring
+- fusion-plugin
+- mtl
+- network
+- process
+- streaming
+- streaming-attoparsec
+- streaming-bytestring
+- streamly
+- streamly-bytestring
+
+ghc-options:
+- -O2
+- -Wall
+- -fdicts-strict
+- -fmax-worker-args=16
+- -fspec-constr-recursive=16
+- -fplugin Fusion.Plugin
+
+library:
+  source-dirs: src
+
+executables:
+  pcap-replicator-ioref:
+    main:                Main.hs
+    source-dirs:         app-ioref
+    dependencies:
+    - pcap-replicator
+    ghc-options:
+    - -threaded
+    - -rtsopts
+  pcap-replicator-statet:
+    main:                Main.hs
+    source-dirs:         app-statet
+    dependencies:
+    - pcap-replicator
+    ghc-options:
+    - -threaded
+    - -rtsopts

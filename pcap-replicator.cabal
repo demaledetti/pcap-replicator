@@ -1,0 +1,98 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           pcap-replicator
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/demaledetti/pcap-replicator#readme>
+homepage:       https://github.com/demaledetti/pcap-replicator#readme
+bug-reports:    https://github.com/demaledetti/pcap-replicator/issues
+author:         Stefano Debenedetti
+maintainer:     44903077+demaledetti@users.noreply.github.com
+copyright:      2022 Stefano Debenedetti
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/demaledetti/pcap-replicator
+
+library
+  exposed-modules:
+      PcapReplicator
+      PcapReplicator.Network
+      PcapReplicator.Parser
+      PcapReplicator.Process
+  other-modules:
+      Paths_pcap_replicator
+  hs-source-dirs:
+      src
+  ghc-options: -O2 -Wall -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin
+  build-depends:
+      attoparsec
+    , base >=4.7 && <5
+    , binary
+    , bytestring
+    , fusion-plugin
+    , mtl
+    , network
+    , process
+    , streaming
+    , streaming-attoparsec
+    , streaming-bytestring
+    , streamly
+    , streamly-bytestring
+  default-language: Haskell2010
+
+executable pcap-replicator-ioref
+  main-is: Main.hs
+  other-modules:
+      Paths_pcap_replicator
+  hs-source-dirs:
+      app-ioref
+  ghc-options: -O2 -Wall -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -threaded -rtsopts
+  build-depends:
+      attoparsec
+    , base >=4.7 && <5
+    , binary
+    , bytestring
+    , fusion-plugin
+    , mtl
+    , network
+    , pcap-replicator
+    , process
+    , streaming
+    , streaming-attoparsec
+    , streaming-bytestring
+    , streamly
+    , streamly-bytestring
+  default-language: Haskell2010
+
+executable pcap-replicator-statet
+  main-is: Main.hs
+  other-modules:
+      Paths_pcap_replicator
+  hs-source-dirs:
+      app-statet
+  ghc-options: -O2 -Wall -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -threaded -rtsopts
+  build-depends:
+      attoparsec
+    , base >=4.7 && <5
+    , binary
+    , bytestring
+    , fusion-plugin
+    , mtl
+    , network
+    , pcap-replicator
+    , process
+    , streaming
+    , streaming-attoparsec
+    , streaming-bytestring
+    , streamly
+    , streamly-bytestring
+  default-language: Haskell2010
