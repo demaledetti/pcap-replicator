@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.35.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -25,29 +25,45 @@ source-repository head
 library
   exposed-modules:
       PcapReplicator
+      PcapReplicator.Cli
+      PcapReplicator.Log
       PcapReplicator.Network
       PcapReplicator.Parser
+      PcapReplicator.Parser.Fold
+      PcapReplicator.Parser.FoldCP
+      PcapReplicator.Parser.Parser
+      PcapReplicator.Parser.Streaming
+      PcapReplicator.Parser.Unfold
+      PcapReplicator.Parser.Utils
       PcapReplicator.Process
   other-modules:
       Paths_pcap_replicator
   hs-source-dirs:
       src
-  ghc-options: -O2 -Wall -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin
+  ghc-options: -Wall -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin
   build-depends:
       attoparsec
     , base >=4.7 && <5
     , binary
     , bytestring
+    , contra-tracer
+    , exceptions
     , fusion-plugin
+    , hw-ip
     , mtl
     , network
+    , network-simple
+    , optparse-applicative
     , process
+    , say
     , streaming
     , streaming-attoparsec
     , streaming-bytestring
     , streamly
     , streamly-bytestring
-  default-language: Haskell2010
+    , streamly-process
+    , text
+  default-language: GHC2021
 
 executable pcap-replicator-ioref
   main-is: Main.hs
@@ -55,23 +71,31 @@ executable pcap-replicator-ioref
       Paths_pcap_replicator
   hs-source-dirs:
       app-ioref
-  ghc-options: -O2 -Wall -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -threaded -rtsopts
+  ghc-options: -Wall -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -threaded -rtsopts
   build-depends:
       attoparsec
     , base >=4.7 && <5
     , binary
     , bytestring
+    , contra-tracer
+    , exceptions
     , fusion-plugin
+    , hw-ip
     , mtl
     , network
+    , network-simple
+    , optparse-applicative
     , pcap-replicator
     , process
+    , say
     , streaming
     , streaming-attoparsec
     , streaming-bytestring
     , streamly
     , streamly-bytestring
-  default-language: Haskell2010
+    , streamly-process
+    , text
+  default-language: GHC2021
 
 executable pcap-replicator-statet
   main-is: Main.hs
@@ -79,20 +103,63 @@ executable pcap-replicator-statet
       Paths_pcap_replicator
   hs-source-dirs:
       app-statet
-  ghc-options: -O2 -Wall -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -threaded -rtsopts
+  ghc-options: -Wall -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -threaded -rtsopts
   build-depends:
       attoparsec
     , base >=4.7 && <5
     , binary
     , bytestring
+    , contra-tracer
+    , exceptions
     , fusion-plugin
+    , hw-ip
     , mtl
     , network
+    , network-simple
+    , optparse-applicative
     , pcap-replicator
     , process
+    , say
     , streaming
     , streaming-attoparsec
     , streaming-bytestring
     , streamly
     , streamly-bytestring
-  default-language: Haskell2010
+    , streamly-process
+    , text
+  default-language: GHC2021
+
+benchmark pcap-replicator
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Paths_pcap_replicator
+  hs-source-dirs:
+      bench
+  ghc-options: -Wall -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -threaded -rtsopts
+  build-depends:
+      attoparsec
+    , base >=4.7 && <5
+    , binary
+    , bytestring
+    , contra-tracer
+    , exceptions
+    , fusion-plugin
+    , hw-ip
+    , mtl
+    , network
+    , network-simple
+    , optparse-applicative
+    , pcap-replicator
+    , process
+    , say
+    , streaming
+    , streaming-attoparsec
+    , streaming-bytestring
+    , streamly
+    , streamly-bytestring
+    , streamly-process
+    , tasty
+    , tasty-bench
+    , text
+  default-language: GHC2021

@@ -11,24 +11,34 @@ extra-source-files:
 
 description:         Please see the README on GitHub at <https://github.com/demaledetti/pcap-replicator#readme>
 
+language: GHC2021
+
 dependencies:
 - attoparsec
 - base >= 4.7 && < 5
 - binary
 - bytestring
+- contra-tracer
+- exceptions
 - fusion-plugin
+- hw-ip
 - mtl
 - network
+- network-simple
+- optparse-applicative
 - process
+- say
 - streaming
 - streaming-attoparsec
 - streaming-bytestring
 - streamly
 - streamly-bytestring
+- streamly-process
+- text
 
 ghc-options:
-- -O2
 - -Wall
+# https://streamly.composewell.com/streamly-0.8.2/Compiling.html#compilation-options
 - -fdicts-strict
 - -fmax-worker-args=16
 - -fspec-constr-recursive=16
@@ -46,6 +56,7 @@ executables:
     ghc-options:
     - -threaded
     - -rtsopts
+    #- -with-rtsopts=-N2
   pcap-replicator-statet:
     main:                Main.hs
     source-dirs:         app-statet
@@ -54,3 +65,16 @@ executables:
     ghc-options:
     - -threaded
     - -rtsopts
+
+benchmarks:
+  pcap-replicator:
+    main:                Main.hs
+    source-dirs:         bench
+    dependencies:
+    - pcap-replicator
+    - tasty
+    - tasty-bench
+    ghc-options:
+    - -threaded
+    - -rtsopts
+

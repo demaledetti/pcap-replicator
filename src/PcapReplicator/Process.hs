@@ -1,28 +1,28 @@
 {-# LANGUAGE RecordWildCards #-}
 module PcapReplicator.Process (PcapProcess(..), pcapProcess) where
 
-import qualified Data.ByteString as BS
-import qualified Streaming.Prelude as Streaming
-import qualified Streamly.External.ByteString as Strict
+import qualified Streamly.Internal.Data.Array.Stream.Foreign as ArrayStream
+--import qualified Streamly.Internal.Data.Fold as Fold
 import qualified Streamly.Prelude as Stream
-import System.Process (createProcess, CreateProcess(..), ProcessHandle, shell, StdStream(..))
+import System.Process (createProcess, CreateProcess(..), shell, StdStream(..), waitForProcess)
 
 import PcapReplicator
-import PcapReplicator.Parser
+import PcapReplicator.Parser.Utils
 
-
-pcap2stream :: Packet -> PcapPacket
-pcap2stream Packet{..} = Stream.unfold Strict.read header `Stream.serial` Stream.unfold Strict.read bytes
 
 data PcapProcess = PcapProcess {
-      pcapStreamHeader :: PcapStreamHeader
-    , pcapPacketStream :: Stream.SerialT IO PcapPacket
-    , processHandle :: ProcessHandle
+      pcapStreamHeader :: PcapStreamHeaderA
+    , pcapPacketStream :: StreamOfBytesA
     }
 
-pcapProcess :: String -> IO PcapProcess
-pcapProcess cmdLine = do
-      (_, Just hout, _, processHandle) <- createProcess (shell cmdLine){ std_out = CreatePipe }
-      pcapStreamHeader <- Stream.fromList . BS.unpack <$> BS.hGet hout 24
-      let pcapPacketStream = Stream.map pcap2stream $ Stream.unfoldrM Streaming.uncons (offline hout)
+pcapProcess :: String -> PcapParser -> Int -> IO PcapProcess
+pcapProcess cmdLine parser bufferBytes = do
+      (_, Just stdoutHandle, _, processHandle) <- createProcess (shell cmdLine){ std_out = CreatePipe }
+      pcapStreamHeader <- mytake stdoutHandle 24
+      let pcapPacketStream' = buffer $ parser stdoutHandle
+          pcapPacketStream = Stream.after (waitForProcess processHandle) pcapPacketStream'
       return PcapProcess{..}
+  where
+    buffer s = if bufferBytes > 0 then ArrayStream.compact bufferBytes s else s
+    -- buffering by number of elements (packets)
+    -- Stream.mapM ArrayStream.toArray $ Stream.chunksOf 20 Fold.toStream s
