@@ -8,12 +8,13 @@ import PcapReplicator
 
 
 data Options = Options
-  { ip                :: IpAddress
-  , port              :: PortNumber
-  , pcapParserName    :: PcapParserName
-  , bufferBytes       :: Int
-  , once              :: Bool
-  , cmd               :: [String]
+  { ip                :: !IpAddress
+  , port              :: !PortNumber
+  , pcapParserName    :: !PcapParserName
+  , bufferBytes       :: !Int
+  , readBufferBytes   :: !Int
+  , once              :: !Bool
+  , cmd               :: ![String]
   } deriving Show
 
 cli :: Parser Options
@@ -39,7 +40,7 @@ cli = Options
          <> short 'P'
          <> help "Pcap parser to use (for benchmarking)"
          <> showDefault
-         <> value Fold
+         <> value ByteString
          <> metavar "PARSER" )
       <*> option auto
           ( long "bufferBytes"
@@ -48,6 +49,13 @@ cli = Options
          <> showDefault
          <> value (32 * 1024)
          <> metavar "BUFFER" )
+      <*> option auto
+          ( long "readBufferBytes"
+         <> short 'r'
+         <> help "Size of read buffer in bytes (for benchmarking)"
+         <> showDefault
+         <> value (32 * 1024)
+         <> metavar "RBUFFER" )
       <*> switch
           ( long "once"
          <> short '1'

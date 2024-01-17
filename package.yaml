@@ -8,44 +8,55 @@ copyright:           "2022 Stefano Debenedetti"
 
 extra-source-files:
 - README.md
+- cabal*project*
 
 description:         Please see the README on GitHub at <https://github.com/demaledetti/pcap-replicator#readme>
 
 language: GHC2021
 
 dependencies:
-- attoparsec
 - base >= 4.7 && < 5
-- binary
-- bytestring
-- contra-tracer
-- exceptions
 - fusion-plugin
-- hw-ip
-- mtl
-- network
-- network-simple
-- optparse-applicative
-- process
-- say
-- streaming
-- streaming-attoparsec
-- streaming-bytestring
 - streamly
-- streamly-bytestring
-- streamly-process
-- text
+- streamly-core
 
 ghc-options:
 - -Wall
+- -Wunused-packages
 # https://streamly.composewell.com/streamly-0.8.2/Compiling.html#compilation-options
 - -fdicts-strict
 - -fmax-worker-args=16
 - -fspec-constr-recursive=16
 - -fplugin Fusion.Plugin
+# core
+- -ddump-simpl
+- -ddump-opt-cmm
+# - -dsuppress-all
+- -dsuppress-uniques
+- -ddump-to-file
+# stan
+- -fwrite-ide-info
+- -hiedir=.hie
 
 library:
   source-dirs: src
+  dependencies:
+  - attoparsec
+  - bytestring
+  - contra-tracer
+  - exceptions
+  - hw-ip
+  - network
+  - network-simple
+  - optparse-applicative
+  - process
+  - say
+  - streaming
+  - streaming-attoparsec
+  - streaming-bytestring
+  - streamly-bytestring
+  # - streamly-process
+  - text
 
 executables:
   pcap-replicator-ioref:
@@ -61,7 +72,11 @@ executables:
     main:                Main.hs
     source-dirs:         app-statet
     dependencies:
+    - contra-tracer
+    - exceptions
     - pcap-replicator
+    - mtl
+    - network
     ghc-options:
     - -threaded
     - -rtsopts
@@ -71,9 +86,14 @@ benchmarks:
     main:                Main.hs
     source-dirs:         bench
     dependencies:
+    - bytestring
     - pcap-replicator
+    - process
     - tasty
     - tasty-bench
+    build-tool-depends:
+    - pcap-replicator:pcap-replicator-ioref
+    - pcap-replicator:pcap-replicator-statet
     ghc-options:
     - -threaded
     - -rtsopts

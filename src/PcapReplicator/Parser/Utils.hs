@@ -1,18 +1,18 @@
-module PcapReplicator.Parser.Utils (capturedPacketLength, fourOctetsToWord32, mytake) where
+module PcapReplicator.Parser.Utils (capturedPacketLength, capturedPacketLengthBS, fourOctetsToWord32, mytake) where
 
-import Data.Bits (shiftL, (.|.))
+import Data.Bits (unsafeShiftL, (.|.))
 import qualified Data.ByteString as BS
 import Data.Word (Word8, Word32)
 import qualified Streamly.External.ByteString as Strict
-import qualified Streamly.Internal.Data.Array.Foreign as Array
+import qualified Streamly.Internal.Data.Array as Array
 import System.IO (Handle)
 
 
 fourOctetsToWord32 :: Word8 -> Word8 -> Word8 -> Word8 -> Word32
 fourOctetsToWord32 a b c d =
-    ( fromIntegral a `shiftL` 24) .|.
-    ( fromIntegral b `shiftL` 16) .|.
-    ( fromIntegral c `shiftL`  8) .|.
+    ( fromIntegral a `unsafeShiftL` 24) .|.
+    ( fromIntegral b `unsafeShiftL` 16) .|.
+    ( fromIntegral c `unsafeShiftL`  8) .|.
       fromIntegral d
 {-# INLINE fourOctetsToWord32 #-}
 
@@ -22,5 +22,10 @@ mytake handle size = Strict.toArray <$> BS.hGet handle size
 
 capturedPacketLength :: Array.Array Word8 -> Int
 capturedPacketLength bs =
-    fromIntegral $ fourOctetsToWord32 (Array.unsafeIndex 11 bs) (Array.unsafeIndex 10 bs) (Array.unsafeIndex 9 bs) (Array.unsafeIndex 8 bs)
+    fromIntegral $! fourOctetsToWord32 (Array.getIndexUnsafe 11 bs) (Array.getIndexUnsafe 10 bs) (Array.getIndexUnsafe 9 bs) (Array.getIndexUnsafe 8 bs)
 {-# INLINE capturedPacketLength #-}
+
+capturedPacketLengthBS :: BS.ByteString -> Int
+capturedPacketLengthBS bs =
+    fromIntegral $! fourOctetsToWord32 (BS.index bs 11) (BS.index bs 10) (BS.index bs 9) (BS.index bs 8)
+{-# INLINE capturedPacketLengthBS #-}

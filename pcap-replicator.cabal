@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.0.
+-- This file has been generated from package.yaml by hpack version 0.36.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -17,6 +17,14 @@ license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
+    cabal.lts-21.22.project
+    cabal.lts-21.22.project.freeze
+    cabal.lts-22.4.project
+    cabal.lts-22.4.project.freeze
+    cabal.nightly-2024-01-03.project
+    cabal.nightly-2024-01-03.project.freeze
+    cabal.project
+    cabal.project.freeze
 
 source-repository head
   type: git
@@ -40,17 +48,15 @@ library
       Paths_pcap_replicator
   hs-source-dirs:
       src
-  ghc-options: -Wall -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin
+  ghc-options: -Wall -Wunused-packages -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -ddump-simpl -ddump-opt-cmm -dsuppress-uniques -ddump-to-file -fwrite-ide-info -hiedir=.hie
   build-depends:
       attoparsec
     , base >=4.7 && <5
-    , binary
     , bytestring
     , contra-tracer
     , exceptions
     , fusion-plugin
     , hw-ip
-    , mtl
     , network
     , network-simple
     , optparse-applicative
@@ -61,7 +67,7 @@ library
     , streaming-bytestring
     , streamly
     , streamly-bytestring
-    , streamly-process
+    , streamly-core
     , text
   default-language: GHC2021
 
@@ -71,30 +77,13 @@ executable pcap-replicator-ioref
       Paths_pcap_replicator
   hs-source-dirs:
       app-ioref
-  ghc-options: -Wall -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -threaded -rtsopts
+  ghc-options: -Wall -Wunused-packages -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -ddump-simpl -ddump-opt-cmm -dsuppress-uniques -ddump-to-file -fwrite-ide-info -hiedir=.hie -threaded -rtsopts
   build-depends:
-      attoparsec
-    , base >=4.7 && <5
-    , binary
-    , bytestring
-    , contra-tracer
-    , exceptions
+      base >=4.7 && <5
     , fusion-plugin
-    , hw-ip
-    , mtl
-    , network
-    , network-simple
-    , optparse-applicative
     , pcap-replicator
-    , process
-    , say
-    , streaming
-    , streaming-attoparsec
-    , streaming-bytestring
     , streamly
-    , streamly-bytestring
-    , streamly-process
-    , text
+    , streamly-core
   default-language: GHC2021
 
 executable pcap-replicator-statet
@@ -103,30 +92,17 @@ executable pcap-replicator-statet
       Paths_pcap_replicator
   hs-source-dirs:
       app-statet
-  ghc-options: -Wall -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -threaded -rtsopts
+  ghc-options: -Wall -Wunused-packages -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -ddump-simpl -ddump-opt-cmm -dsuppress-uniques -ddump-to-file -fwrite-ide-info -hiedir=.hie -threaded -rtsopts
   build-depends:
-      attoparsec
-    , base >=4.7 && <5
-    , binary
-    , bytestring
+      base >=4.7 && <5
     , contra-tracer
     , exceptions
     , fusion-plugin
-    , hw-ip
     , mtl
     , network
-    , network-simple
-    , optparse-applicative
     , pcap-replicator
-    , process
-    , say
-    , streaming
-    , streaming-attoparsec
-    , streaming-bytestring
     , streamly
-    , streamly-bytestring
-    , streamly-process
-    , text
+    , streamly-core
   default-language: GHC2021
 
 benchmark pcap-replicator
@@ -136,30 +112,18 @@ benchmark pcap-replicator
       Paths_pcap_replicator
   hs-source-dirs:
       bench
-  ghc-options: -Wall -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -threaded -rtsopts
+  ghc-options: -Wall -Wunused-packages -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -ddump-simpl -ddump-opt-cmm -dsuppress-uniques -ddump-to-file -fwrite-ide-info -hiedir=.hie -threaded -rtsopts
+  build-tools:
+      pcap-replicator-ioref
+    , pcap-replicator-statet
   build-depends:
-      attoparsec
-    , base >=4.7 && <5
-    , binary
+      base >=4.7 && <5
     , bytestring
-    , contra-tracer
-    , exceptions
     , fusion-plugin
-    , hw-ip
-    , mtl
-    , network
-    , network-simple
-    , optparse-applicative
     , pcap-replicator
     , process
-    , say
-    , streaming
-    , streaming-attoparsec
-    , streaming-bytestring
     , streamly
-    , streamly-bytestring
-    , streamly-process
+    , streamly-core
     , tasty
     , tasty-bench
-    , text
   default-language: GHC2021

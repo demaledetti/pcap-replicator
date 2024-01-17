@@ -1,9 +1,10 @@
 {-# LANGUAGE RecordWildCards #-}
 module PcapReplicator.Process (PcapProcess(..), pcapProcess) where
 
-import qualified Streamly.Internal.Data.Array.Stream.Foreign as ArrayStream
+import qualified Streamly.Internal.Data.Array.Stream as ArrayStream
 --import qualified Streamly.Internal.Data.Fold as Fold
-import qualified Streamly.Prelude as Stream
+import qualified Streamly.Data.Stream.Prelude as Stream
+import System.IO (hSetBinaryMode)
 import System.Process (createProcess, CreateProcess(..), shell, StdStream(..), waitForProcess)
 
 import PcapReplicator
@@ -11,15 +12,16 @@ import PcapReplicator.Parser.Utils
 
 
 data PcapProcess = PcapProcess {
-      pcapStreamHeader :: PcapStreamHeaderA
-    , pcapPacketStream :: StreamOfBytesA
+      pcapStreamHeader :: !PcapStreamHeaderA
+    , pcapPacketStream :: !StreamOfBytesA
     }
 
-pcapProcess :: String -> PcapParser -> Int -> IO PcapProcess
-pcapProcess cmdLine parser bufferBytes = do
+pcapProcess :: String -> PcapParser -> Int -> Int -> IO PcapProcess
+pcapProcess cmdLine parser bufferBytes readBufferBytes = do
       (_, Just stdoutHandle, _, processHandle) <- createProcess (shell cmdLine){ std_out = CreatePipe }
+      hSetBinaryMode stdoutHandle True
       pcapStreamHeader <- mytake stdoutHandle 24
-      let pcapPacketStream' = buffer $ parser stdoutHandle
+      let pcapPacketStream' = buffer $ parser readBufferBytes stdoutHandle
           pcapPacketStream = Stream.after (waitForProcess processHandle) pcapPacketStream'
       return PcapProcess{..}
   where

@@ -1,5 +1,7 @@
 module PcapReplicator.Parser (getParser) where
 
+import Debug.Trace (trace)
+
 import PcapReplicator
 
 import qualified PcapReplicator.Parser.Fold
@@ -10,10 +12,16 @@ import qualified PcapReplicator.Parser.Unfold
 
 
 getParser :: PcapParserName -> PcapParser
-getParser Fold = PcapReplicator.Parser.Fold.parse
-getParser FoldCP = PcapReplicator.Parser.FoldCP.parse
-getParser Parser = PcapReplicator.Parser.Parser.parse
-getParser ParserCP = PcapReplicator.Parser.Parser.parse2
-getParser ByteString = PcapReplicator.Parser.Streaming.parse
-getParser Array = PcapReplicator.Parser.Streaming.parse2
-getParser Unfold = PcapReplicator.Parser.Unfold.parse
+getParser name = case name of
+    Fold -> PcapReplicator.Parser.Fold.parseF
+    FoldCP -> PcapReplicator.Parser.FoldCP.parseFCP
+    Parser -> PcapReplicator.Parser.Parser.parseP
+    ParserCP -> PcapReplicator.Parser.Parser.parseCP
+    ParserMA -> PcapReplicator.Parser.Parser.parseMA
+    ParserChunked -> PcapReplicator.Parser.Parser.parsePChunked
+    ParserCPChunked -> PcapReplicator.Parser.Parser.parseCPChunked
+    ParserMAChunked -> PcapReplicator.Parser.Parser.parseMAChunked
+    ByteString -> PcapReplicator.Parser.Streaming.parseBS
+    Array -> PcapReplicator.Parser.Streaming.parseA
+    Unfold -> PcapReplicator.Parser.Unfold.parseU
+    -- Dummy -> trace "Dummy" undefined

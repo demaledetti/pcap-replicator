@@ -3,16 +3,15 @@
 {-# LANGUAGE TupleSections #-}
 module Main where
 
+-- import Control.Concurrent.Async (race_)
 import Control.Monad (forever)
-import Control.Tracer (Tracer)
-import Data.Functor.Contravariant (contramap)
 import Data.IORef (atomicModifyIORef', IORef, newIORef)
-import Streamly.Prelude ((.:), (|:))
-import qualified Streamly.Prelude as Stream
+import qualified Streamly.Data.Fold as Fold
+import qualified Streamly.Data.Stream.Prelude as Stream
 
 import PcapReplicator
 import PcapReplicator.Cli (parseCli, Options(..))
-import PcapReplicator.Log (stdoutIOTextTracer)
+import PcapReplicator.Log
 import PcapReplicator.Network
 import PcapReplicator.Process
 import PcapReplicator.Parser (getParser)
@@ -20,25 +19,27 @@ import PcapReplicator.Parser (getParser)
 
 data App = App {
   -- static configuration
-    config :: Options
+    config :: !Options
   -- logging
-  , tracer :: Tracer IO TcpTrace
+  , tracer :: !TracerIOIOT
   -- mutable state
-  , clients :: IORef Clients
+  , clients :: !(IORef Clients)
   }
 
 main :: IO ()
 main = do
     options <- parseCli
     print options
-    app <- App options (contramap tcpTraceLog stdoutIOTextTracer) <$> newIORef Stream.nil
-    Stream.drain $ Stream.take 1 $ Stream.fromParallel $ server app |: source app |: Stream.nil
+    app <- App options stdoutIOTextTracer <$> newIORef Stream.nil
+    drain $ Stream.take 1 $ Stream.parSequence (Stream.eager True) $ Stream.fromList [server app, source app]
+    -- drain $ Stream.take 1 $ Stream.parEval id $ Stream.fromList [server app, source app]
+    -- race_ (server app) (source app)
 
 server :: App -> IO ()
-server App{..} = Stream.mapM_ connectionMade (tcpServer tracer)
+server App{..} = smapM_ connectionMade (tcpServer tracer)
   where
     connectionMade sk = atomicModifyIORef' clients (addClient (New sk))
-    addClient newClient otherClients = (newClient .: otherClients, ())
+    addClient newClient otherClients = (newClient `Stream.cons` otherClients, ())
 
 source :: App -> IO ()
 source App{..} = if config.once then go else forever go
@@ -47,11 +48,14 @@ source App{..} = if config.once then go else forever go
     parser = getParser config.pcapParserName
 
     go = do
-        PcapProcess{..} <- pcapProcess cmdLine parser config.bufferBytes
-        Stream.mapM_ (send pcapStreamHeader)  pcapPacketStream
+        PcapProcess{..} <- pcapProcess cmdLine parser config.bufferBytes config.readBufferBytes
+        smapM_ (send pcapStreamHeader)  pcapPacketStream
 
     send :: PcapStreamHeaderA -> PcapPacketA -> IO ()
     send header packet = do
         connectedClients <- atomicModifyIORef' clients (Stream.nil,)
         remainingClients <- sendToAll tracer header packet connectedClients
-        atomicModifyIORef' clients $ \newClients -> (newClients `Stream.serial` remainingClients, ())
+        atomicModifyIORef' clients $ \newClients -> (newClients `Stream.append` remainingClients, ())
+
+smapM_ :: Monad m => (a -> m b) -> Stream.Stream m a -> m ()
+smapM_ f = Stream.fold (Fold.drainMapM f)

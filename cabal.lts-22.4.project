@@ -1,0 +1,14 @@
+packages:
+    ./
+
+benchmarks: True
+
+optimization: 2
+
+constraints: hw-ip ==2.4.2.1
+             , streamly-bytestring ==0.2.1
+
+allow-newer:   hedgehog
+             , optparse-applicative
+             , streamly
+             , streamly-core

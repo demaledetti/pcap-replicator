@@ -3,22 +3,49 @@
 set -o errexit
 set -o pipefail
 
-bench=$1
-shift
-len=$1
-shift
-quiet=$1
 
-if [ "$bench" = "" -o "$len" = "" ]
-then
-  echo "usage: $0"
-  exit 1
-fi
+
+usage() { echo "Usage: $0 <all|tcpdump|app-ioref|app-statet|tcpdump_tcpdump|app_tcpdump-ioref|app_tcpdump-statet> [-s <1|10|100>] [-q] [-b <benchmark binary path>] [-- <app options>]" 1>&2; exit 1; }
+
+bench=$1
+[ -z "$bench" ] && usage
+[ "$bench" == all -o "$bench" == tcpdump -o "$bench" == app-ioref -o "$bench" == app-statet -o "$bench" == tcpdump_tcpdump -o "$bench" == app_tcpdump-ioref -o "$bench" == app_tcpdump-statet ] || usage
+shift
+
+while getopts "s:b:qh-" o; do
+    case "${o}" in
+        s)
+            len=${OPTARG}
+            ((len == 1 || len == 10 || len == 100)) || usage
+            ;;
+        b)
+            bbpath=${OPTARG}
+            ;;
+        q)
+            quiet="-q"
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+[ -z "$len" ] && len=10
+[ -z "$bbpath" ] && bbpath=$(cabal list-bin bench:pcap-replicator)
+
+# echo "bench = ${bench}"
+# echo "len = ${len}"
+# echo "quiet = ${quiet}"
+# echo "bbpath = ${bbpath}"
+# echo "rest = $@"
+# exit 0
+
+
 if [ "$quiet" = "-q" ]
 then
   exec > /tmp/debug.log
   exec 2>&1
-  shift
 fi
 
 app_args="$@"
@@ -46,6 +73,14 @@ par() {
   xargs -P 2 -I {} bash -c "{}"
 }
 
+function waitport() { cx=0; while ! ss -ntHl '( sport = :8091 )' | grep -q . -a $cx -ne 1000 ]; do sleep .000001; cx=$(($cx +1)); done; }
+
+appbin() {
+  local app=$1
+  app_bin_rel_path_template="/x/pcap-replicator-_the_app_/opt/build/pcap-replicator-_the_app_/pcap-replicator-_the_app_"
+  app_bin_rel_path="${app_bin_rel_path_template//_the_app_/$app}"
+  echo $bbpath | sed "s,/b/.*,$app_bin_rel_path,"
+}
 
 #title "cat"
 #time cat $the_pcap100 | pv -rt > /dev/null
@@ -61,21 +96,21 @@ pv -rt $the_pcap | /usr/bin/time -v tcpdump -nnr - --count >> /tmp/debug.log 2>&
 b_app() {
 local app=$1
 title "$app"
-/usr/bin/time -v cabal run pcap-replicator-$app -- -1 $app_args "pv -rt $the_pcap"
+/usr/bin/time -v $(appbin $app) -1 $app_args "pv -rt $the_pcap"
 }
 
 b_tcpdump_tcpdump() {
 par "tcpdump + tcpdump" <<EOF
 pv -rtc -N server $the_pcap | tcpdump -nnr - -w - | nc -Nl 8091
-sleep 1; time nc -d localhost 8091 | pv -rtc -N client | tcpdump -nnr - --count
+cx=0; while ! ss -ntHl \'( sport = :8091 )\' | grep -q . && [ \$cx -ne 1000 ]; do sleep .000001; cx=\$\(\(\$cx +1)); done; time nc -d localhost 8091 | pv -rtc -N client | tcpdump -nnr - --count
 EOF
 }
 
 b_app_tcpdump() {
 local app=$1
 par "$app + tcpdump" <<EOF
-cabal run pcap-replicator-$app -- -1 "$app_args" \"sleep 1; time pv -rtc -N server $the_pcap\"
-sleep .9; time nc -d localhost 8091 | pv -rtc -N client | tcpdump -nnr - --count
+$(appbin $app) -1 "$app_args" \"sleep .1; time pv -rtc -N server $the_pcap\"
+cx=0; while ! ss -ntHl \'( sport = :8091 )\' | grep -q . && [ \$cx -ne 1000 ]; do sleep .000001; cx=\$\(\(\$cx +1)); done; time nc -d localhost 8091 | pv -rtc -N client | tcpdump -nnr - --count
 EOF
 }
 

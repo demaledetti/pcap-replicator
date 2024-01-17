@@ -1,6 +1,7 @@
 module PcapReplicator.Log (
     stdoutTextTracer
   , stdoutIOTextTracer
+  , TracerIOIOT
   , tshow
 ) where
 
@@ -18,3 +19,6 @@ stdoutIOTextTracer = Tracer $ emit (liftIO >=> say)
 
 tshow :: Show a => a -> T.Text
 tshow = T.pack . show
+
+
+type TracerIOIOT = Tracer IO (IO T.Text)

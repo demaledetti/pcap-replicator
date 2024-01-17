@@ -1,14 +1,14 @@
-module PcapReplicator.Parser.Unfold (parse) where
+module PcapReplicator.Parser.Unfold (parseU) where
 
-import qualified Streamly.Internal.Data.Array.Foreign as Array
-import qualified Streamly.Prelude as Stream
+import qualified Streamly.Internal.Data.Array as Array
+import qualified Streamly.Data.Stream.Prelude as Stream
 
 import PcapReplicator
 import PcapReplicator.Parser.Utils
 
 
-parse :: PcapParser
-parse = Stream.unfoldrM go
+parseU :: PcapParser
+parseU _readBufferBytes = Stream.unfoldrM go
   where
     go rest = do
         pcapHeader <- mytake rest 16

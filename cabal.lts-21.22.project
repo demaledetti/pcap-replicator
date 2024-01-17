@@ -1,0 +1,12 @@
+packages:
+    ./
+
+benchmarks: True
+
+optimization: 2
+package *
+    optimization: 2
+
+allow-newer: bytestring
+           , streamly
+           , streamly-core

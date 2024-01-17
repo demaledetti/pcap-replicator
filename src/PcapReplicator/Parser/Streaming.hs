@@ -1,58 +1,40 @@
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE StrictData #-}
-module PcapReplicator.Parser.Streaming (parse, parse2) where
+module PcapReplicator.Parser.Streaming (parseA, parseBS) where
 
 import Control.Monad (void)
-import Control.Monad.IO.Class (MonadIO)
 import qualified Data.Attoparsec.ByteString as A
 import qualified Data.Attoparsec.ByteString.Streaming as AS
-import qualified Data.Binary.Get as Get
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LB
-import Data.Word (Word32, Word8)
 import qualified Streaming.ByteString as Q
 import qualified Streaming.Prelude as Streaming
 import qualified Streamly.External.ByteString as Strict
-import qualified Streamly.Internal.Data.Array.Foreign as Array
-import qualified Streamly.Prelude as Stream
-import System.IO (Handle)
+import qualified Streamly.Data.Stream.Prelude as Stream
 
 import PcapReplicator
 import PcapReplicator.Parser.Utils
 
 
-pcap2stream :: Packet -> PcapPacketA
-pcap2stream Packet{..} = Strict.toArray $ header <> bytes
+parseBS :: PcapParser
+parseBS = parse' packetBS
 
-parse :: Handle -> Stream.SerialT IO (Array.Array Word8)
-parse handle = Stream.map pcap2stream $ Stream.unfoldrM Streaming.uncons (offline handle)
+parseA :: PcapParser
+parseA = parse' packetA
 
-parse2 :: Handle -> Stream.SerialT IO (Array.Array Word8)
-parse2 handle = Stream.unfoldrM Streaming.uncons (offline2 handle)
+parse' :: A.Parser PcapPacketA -> PcapParser
+parse' parser readBufferBytes handle = Stream.unfoldrM Streaming.uncons streamFromHandle
+  where
 
 -- The following bits are humbly adapted from
 -- <https://hackage.haskell.org/package/streaming-pcap streaming-pcap> by Colin Woodbury
 
-data Packet = Packet { header :: BS.ByteString, bytes :: BS.ByteString }
+    streamFromHandle = void . AS.parsed parser $ Q.hGetContentsN readBufferBytes handle
 
-packetAP :: A.Parser PcapPacketA
-packetAP = do
+packetBS :: A.Parser PcapPacketA
+packetBS = do
+  hdr <- A.take 16
+  bts <- A.take $ capturedPacketLengthBS hdr
+  pure $! Strict.toArray $! hdr <> bts
+
+packetA:: A.Parser PcapPacketA
+packetA = do
   hdr <- Strict.toArray <$> A.take 16
   bts <- Strict.toArray <$> A.take (capturedPacketLength hdr)
-  pure $ hdr <> bts
-
-packetP :: A.Parser Packet
-packetP = do
-  hdr <- A.take 16
-  bts <- A.take . fromIntegral . four . BS.take 4 $ BS.drop 8 hdr
-  pure $ Packet hdr bts
-
-four :: BS.ByteString -> Word32
-four = Get.runGet Get.getWord32le . LB.fromStrict
-{-# INLINE four #-}
-
-offline :: MonadIO m => Handle -> Streaming.Stream (Streaming.Of Packet) m ()
-offline = void . AS.parsed packetP . Q.fromHandle
-
-offline2 :: MonadIO m => Handle -> Streaming.Stream (Streaming.Of PcapPacketA) m ()
-offline2 = void . AS.parsed packetAP . Q.fromHandle
+  pure $! hdr <> bts

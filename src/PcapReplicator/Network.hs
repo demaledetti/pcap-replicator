@@ -5,14 +5,15 @@ import Control.Exception (catch, IOException)
 import qualified Control.Monad.Catch as E
 import Control.Monad.IO.Class (liftIO)
 import Control.Tracer (Tracer, traceWith)
+import Data.Functor.Contravariant (contramap)
 import qualified Data.Text as T
 import Data.Word (Word8)
 import Network.Simple.TCP (closeSock)
 import Network.Socket (getPeerName, Socket, SocketOption(..))
-import qualified Streamly.Data.Array.Foreign as Array
+import qualified Streamly.Data.Array as Array
 import qualified Streamly.Internal.Network.Inet.TCP as TCP
 import qualified Streamly.Network.Socket as Socket
-import qualified Streamly.Prelude as Stream
+import qualified Streamly.Data.Stream.Prelude as Stream
 
 import PcapReplicator.Log (tshow)
 
@@ -32,22 +33,31 @@ tcpTraceLog' msg sk = (tshow <$> getPeerName sk) `catch` unknownClient >>= \clie
 unknownClient :: IOException -> IO T.Text
 unknownClient = const $ pure "unknown"
 
-tcpServer :: (Stream.MonadAsync m) => Tracer m TcpTrace -> Stream.SerialT m Socket
-tcpServer tracer =
-      Stream.trace (traceWith tracer . TcpTrace TcpConnectionMade)
-    $ TCP.connectionsOnAddrWith sockopts ip port
+tcpServer :: (Stream.MonadAsync m, E.MonadCatch m) => Tracer m (IO T.Text) -> Stream.Stream m Socket
+tcpServer tracer = Stream.trace traceConnectionMade tryListening
   where
     ip = (0, 0, 0, 0)
     port = 8091
     sockopts = [(ReuseAddr, 1)]
 
-sendChunkToSocket :: (Stream.MonadAsync m, E.MonadCatch m) => Tracer m TcpTrace -> Chunk -> Socket -> m (Maybe Socket)
+    connectedSocketStream = TCP.acceptOnAddrWith sockopts ip port
+    handler (e :: E.SomeException) = do
+        liftIO $ putStrLn ("Server failed: " ++ show e)
+        pure tryListening
+    tryListening = Stream.handle handler connectedSocketStream
+
+    traceConnectionMade = tcpTrace tracer TcpConnectionMade
+
+sendChunkToSocket :: (Stream.MonadAsync m, E.MonadCatch m) => Tracer m (IO T.Text) -> Chunk -> Socket -> m (Maybe Socket)
 sendChunkToSocket tracer chunk sk = send `E.catchIOError` connectionLost
   where
     send = do
-        liftIO $ Socket.writeChunk sk chunk
+        liftIO $ Socket.putChunk sk chunk
         pure $ Just sk
     connectionLost e = do
-        traceWith tracer $ TcpTrace (TcpConnectionLost e) sk
+        tcpTrace tracer (TcpConnectionLost e) sk
         closeSock sk
         pure Nothing
+
+tcpTrace :: Monad m => Tracer m (IO T.Text) -> TcpTraceEventType -> Socket -> m ()
+tcpTrace tracer et sk = traceWith (contramap tcpTraceLog tracer) $ TcpTrace et sk
