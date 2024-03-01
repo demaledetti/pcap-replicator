@@ -1,1 +1,9 @@
-cabal.nightly-2024-01-03.project
+packages:
+    ./
+
+benchmarks: True
+
+optimization: 2
+
+allow-newer:   bytestring
+             , streamly-core
