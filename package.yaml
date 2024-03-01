@@ -45,7 +45,7 @@ library:
   - bytestring
   - contra-tracer
   - exceptions
-  - hw-ip
+  - hw-ip >= 2.4.2.0
   - network
   - network-simple
   - optparse-applicative
@@ -54,7 +54,7 @@ library:
   - streaming
   - streaming-attoparsec
   - streaming-bytestring
-  - streamly-bytestring
+  - streamly-bytestring >= 0.2.1
   # - streamly-process
   - text
 

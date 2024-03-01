@@ -17,12 +17,6 @@ license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
-    cabal.lts-21.22.project
-    cabal.lts-21.22.project.freeze
-    cabal.lts-22.4.project
-    cabal.lts-22.4.project.freeze
-    cabal.nightly-2024-01-03.project
-    cabal.nightly-2024-01-03.project.freeze
     cabal.project
     cabal.project.freeze
 
@@ -56,7 +50,7 @@ library
     , contra-tracer
     , exceptions
     , fusion-plugin
-    , hw-ip >= 2.4.2.0
+    , hw-ip >=2.4.2.0
     , network
     , network-simple
     , optparse-applicative
@@ -66,7 +60,7 @@ library
     , streaming-attoparsec
     , streaming-bytestring
     , streamly
-    , streamly-bytestring >= 0.2.1
+    , streamly-bytestring >=0.2.1
     , streamly-core
     , text
   default-language: GHC2021
