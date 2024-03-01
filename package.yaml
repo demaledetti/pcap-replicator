@@ -91,7 +91,7 @@ benchmarks:
     - process
     - tasty
     - tasty-bench
-    build-tool-depends:
+    build-tools:
     - pcap-replicator:pcap-replicator-ioref
     - pcap-replicator:pcap-replicator-statet
     ghc-options:
