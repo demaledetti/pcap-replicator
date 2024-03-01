@@ -1,7 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module PcapReplicator.Process (PcapProcess(..), pcapProcess) where
 
-import qualified Streamly.Internal.Data.Array.Stream as ArrayStream
+import qualified Streamly.Internal.Data.Array as Array
 --import qualified Streamly.Internal.Data.Fold as Fold
 import qualified Streamly.Data.Stream.Prelude as Stream
 import System.IO (hSetBinaryMode)
@@ -25,6 +25,6 @@ pcapProcess cmdLine parser bufferBytes readBufferBytes = do
           pcapPacketStream = Stream.after (waitForProcess processHandle) pcapPacketStream'
       return PcapProcess{..}
   where
-    buffer s = if bufferBytes > 0 then ArrayStream.compact bufferBytes s else s
+    buffer s = if bufferBytes > 0 then Array.compactLE bufferBytes s else s
     -- buffering by number of elements (packets)
     -- Stream.mapM ArrayStream.toArray $ Stream.chunksOf 20 Fold.toStream s

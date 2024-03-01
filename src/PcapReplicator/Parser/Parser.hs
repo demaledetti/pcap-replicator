@@ -68,7 +68,7 @@ parsePacketMA :: StreamOfBytesParser
 parsePacketMA = do
     pcap_pkt_hdr <- Parser.takeEQ 16 (MArray.writeAppend (MArray.pinnedNew 2048))
     l <- liftIO $ capturedPacketLengthMA pcap_pkt_hdr
-    Array.unsafeFreeze <$> Parser.takeEQ l (MArray.writeAppendNUnsafe l (pure pcap_pkt_hdr))
+    Array.unsafeFreeze <$> Parser.takeEQ l (MArray.unsafeAppendN l (pure pcap_pkt_hdr))
 
 parsePacketCP :: StreamOfBytesParser
 parsePacketCP = parseFixedSizeAndContinueWith 16 $ \pcap_pkt_hdr ->
