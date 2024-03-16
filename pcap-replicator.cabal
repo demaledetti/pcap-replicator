@@ -42,7 +42,7 @@ library
       Paths_pcap_replicator
   hs-source-dirs:
       src
-  ghc-options: -Wall -Wunused-packages -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -ddump-simpl -ddump-opt-cmm -dsuppress-uniques -ddump-to-file -fwrite-ide-info -hiedir=.hie
+  ghc-options: -Wall -Wunused-packages -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -ddump-simpl -ddump-opt-cmm -dsuppress-uniques -ddump-to-file -fwrite-ide-info -hiedir=.hie -fno-asm-shortcutting
   build-depends:
       attoparsec
     , base >=4.7 && <5
@@ -71,7 +71,7 @@ executable pcap-replicator-ioref
       Paths_pcap_replicator
   hs-source-dirs:
       app-ioref
-  ghc-options: -Wall -Wunused-packages -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -ddump-simpl -ddump-opt-cmm -dsuppress-uniques -ddump-to-file -fwrite-ide-info -hiedir=.hie -threaded -rtsopts
+  ghc-options: -Wall -Wunused-packages -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -ddump-simpl -ddump-opt-cmm -dsuppress-uniques -ddump-to-file -fwrite-ide-info -hiedir=.hie -fno-asm-shortcutting -threaded -rtsopts
   build-depends:
       base >=4.7 && <5
     , fusion-plugin
@@ -86,7 +86,7 @@ executable pcap-replicator-statet
       Paths_pcap_replicator
   hs-source-dirs:
       app-statet
-  ghc-options: -Wall -Wunused-packages -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -ddump-simpl -ddump-opt-cmm -dsuppress-uniques -ddump-to-file -fwrite-ide-info -hiedir=.hie -threaded -rtsopts
+  ghc-options: -Wall -Wunused-packages -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -ddump-simpl -ddump-opt-cmm -dsuppress-uniques -ddump-to-file -fwrite-ide-info -hiedir=.hie -fno-asm-shortcutting -threaded -rtsopts
   build-depends:
       base >=4.7 && <5
     , contra-tracer
@@ -106,7 +106,7 @@ benchmark pcap-replicator
       Paths_pcap_replicator
   hs-source-dirs:
       bench
-  ghc-options: -Wall -Wunused-packages -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -ddump-simpl -ddump-opt-cmm -dsuppress-uniques -ddump-to-file -fwrite-ide-info -hiedir=.hie -threaded -rtsopts
+  ghc-options: -Wall -Wunused-packages -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -ddump-simpl -ddump-opt-cmm -dsuppress-uniques -ddump-to-file -fwrite-ide-info -hiedir=.hie -fno-asm-shortcutting -threaded -rtsopts
   build-tools:
       pcap-replicator-ioref
     , pcap-replicator-statet

@@ -37,6 +37,8 @@ ghc-options:
 # stan
 - -fwrite-ide-info
 - -hiedir=.hie
+# workaround for GHC issue #24507
+- -fno-asm-shortcutting
 
 library:
   source-dirs: src

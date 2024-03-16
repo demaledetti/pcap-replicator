@@ -14,17 +14,7 @@ import System.IO (Handle)
 import PcapReplicator.Network
 
 
-data PcapParserName = Dummy
-                  --  ^ the Dummy value here is a workaround for a GHC bug triggered by -O2
-                  -- If we remove it then the getParser function always returns the same
-                  -- parser (the 7th), regardless of the name passed to it.
-                  -- If the Dummy value appears from the 7th position onwards, then the getParser function
-                  -- behaves as if it got passed that value (and thus blows up), regardless of the name
-                  -- passed to it.
-                  -- Commenting cases in the getParser function makes some cases work and some cases blow up.
-                  -- The bug can also be avoided by introducing some Debug.Trace.trace calls in getParser,
-                  -- which makes it a Heisenbug.
-                    | Fold | FoldCP | Unfold | ByteString | Array
+data PcapParserName = Fold | FoldCP | Unfold | ByteString | Array
                     | Parser | ParserMA | ParserCP | ParserChunked | ParserMAChunked | ParserCPChunked
                     deriving (Read, Show)
 

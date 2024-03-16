@@ -1,7 +1,5 @@
 module PcapReplicator.Parser (getParser) where
 
-import Debug.Trace (trace)
-
 import PcapReplicator
 
 import qualified PcapReplicator.Parser.Fold
@@ -24,4 +22,3 @@ getParser name = case name of
     ByteString -> PcapReplicator.Parser.Streaming.parseBS
     Array -> PcapReplicator.Parser.Streaming.parseA
     Unfold -> PcapReplicator.Parser.Unfold.parseU
-    -- Dummy -> trace "Dummy" undefined
