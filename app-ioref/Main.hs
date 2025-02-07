@@ -1,39 +1,43 @@
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
+
 module Main where
 
 -- import Control.Concurrent.Async (race_)
 import Control.Monad (forever)
-import Data.IORef (atomicModifyIORef', IORef, newIORef)
-import qualified Streamly.Data.Fold as Fold
-import qualified Streamly.Data.Stream.Prelude as Stream
+import Data.IORef (IORef, atomicModifyIORef', newIORef)
+import Streamly.Data.Fold qualified as Fold
+import Streamly.Data.Stream.Prelude qualified as Stream
 
 import PcapReplicator
-import PcapReplicator.Cli (parseCli, Options(..))
+import PcapReplicator.Cli (Options (..), parseCli)
 import PcapReplicator.Log
 import PcapReplicator.Network
-import PcapReplicator.Process
 import PcapReplicator.Parser (getParser)
+import PcapReplicator.Process
 
-
-data App = App {
-  -- static configuration
-    config :: !Options
-  -- logging
-  , tracer :: !TracerIOIOT
-  -- mutable state
-  , clients :: !(IORef Clients)
-  }
+data App = App
+    { -- static configuration
+      config :: !Options
+    , -- logging
+      tracer :: !TracerIOIOT
+    , -- mutable state
+      clients :: !(IORef Clients)
+    }
 
 main :: IO ()
 main = do
     options <- parseCli
     print options
     app <- App options stdoutIOTextTracer <$> newIORef Stream.nil
-    drain $ Stream.take 1 $ Stream.parSequence (Stream.eager True) $ Stream.fromList [server app, source app]
-    -- drain $ Stream.take 1 $ Stream.parEval id $ Stream.fromList [server app, source app]
-    -- race_ (server app) (source app)
+    drain $
+        Stream.take 1 $
+            Stream.parSequence (Stream.eager True) $
+                Stream.fromList [server app, source app]
+
+-- drain $ Stream.take 1 $ Stream.parEval id $ Stream.fromList [server app, source app]
+-- race_ (server app) (source app)
 
 server :: App -> IO ()
 server App{..} = smapM_ connectionMade (tcpServer tracer)
@@ -48,8 +52,9 @@ source App{..} = if config.once then go else forever go
     parser = getParser config.pcapParserName
 
     go = do
-        PcapProcess{..} <- pcapProcess cmdLine parser config.bufferBytes config.readBufferBytes
-        smapM_ (send pcapStreamHeader)  pcapPacketStream
+        PcapProcess{..} <-
+            pcapProcess cmdLine parser config.bufferBytes config.readBufferBytes
+        smapM_ (send pcapStreamHeader) pcapPacketStream
 
     send :: PcapStreamHeaderA -> PcapPacketA -> IO ()
     send header packet = do
@@ -57,5 +62,5 @@ source App{..} = if config.once then go else forever go
         remainingClients <- sendToAll tracer header packet connectedClients
         atomicModifyIORef' clients $ \newClients -> (newClients `Stream.append` remainingClients, ())
 
-smapM_ :: Monad m => (a -> m b) -> Stream.Stream m a -> m ()
+smapM_ :: (Monad m) => (a -> m b) -> Stream.Stream m a -> m ()
 smapM_ f = Stream.fold (Fold.drainMapM f)

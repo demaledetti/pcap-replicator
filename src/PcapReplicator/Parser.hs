@@ -2,12 +2,11 @@ module PcapReplicator.Parser (getParser) where
 
 import PcapReplicator
 
-import qualified PcapReplicator.Parser.Fold
-import qualified PcapReplicator.Parser.FoldCP
-import qualified PcapReplicator.Parser.Parser
-import qualified PcapReplicator.Parser.Streaming
-import qualified PcapReplicator.Parser.Unfold
-
+import PcapReplicator.Parser.Fold qualified
+import PcapReplicator.Parser.FoldCP qualified
+import PcapReplicator.Parser.Parser qualified
+import PcapReplicator.Parser.Streaming qualified
+import PcapReplicator.Parser.Unfold qualified
 
 getParser :: PcapParserName -> PcapParser
 getParser name = case name of
