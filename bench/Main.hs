@@ -23,7 +23,7 @@ import System.Environment (getExecutablePath)
 parsersUnderTest, parsersUnderTestProg :: [PcapParserName]
 parsersUnderTest = [ ByteString
                    , Array
-                   , Unfold
+                   -- , Unfold
                    -- , Fold
                    -- , FoldCP
                    -- , ParserMAChunked
@@ -55,7 +55,7 @@ progParse bbpath = localOption WallTime $ bgroup
                  "ProgParse"
                  (makeProgBench bbpath "tcpdump" "tcpdump" []
                  : multiProgBench bbpath "app-ioref" "tcpdump"
-                 -- ++ multiProgBench bbpath "app-statet" "tcpdump"
+                 ++ multiProgBench bbpath "app-statet" "tcpdump"
                  )
 
 progSend :: String -> Benchmark
@@ -63,7 +63,7 @@ progSend bbpath = localOption WallTime $ bgroup
                  "ProgSend"
                  (makeProgBench bbpath "tcpdump_tcpdump" "tcpdump_tcpdump" []
                  : multiProgBench bbpath "app_tcpdump-ioref" "tcpdump_tcpdump"
-                 -- ++ multiProgBench bbpath "app_tcpdump-statet" "tcpdump_tcpdump"
+                 ++ multiProgBench bbpath "app_tcpdump-statet" "tcpdump_tcpdump"
                  )
 
 parseFile :: FilePath -> PcapParser -> IO ()
