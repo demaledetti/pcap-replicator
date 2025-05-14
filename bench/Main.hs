@@ -7,9 +7,11 @@ module Main where
 
 import Control.Monad (void, when)
 import Data.ByteString qualified as BS
+import Data.Maybe (fromMaybe)
 import Streamly.Data.Array as A
 import Streamly.Data.Fold qualified as Fold
 import Streamly.Data.Stream.Prelude qualified as Stream
+import System.FilePath ((</>))
 import System.IO (IOMode (..), withBinaryFile)
 import System.Process (callProcess)
 import Test.Tasty (localOption)
@@ -19,7 +21,7 @@ import Test.Tasty.Patterns.Printer (printAwkExpr)
 import PcapReplicator
 import PcapReplicator.Parser (getParser)
 import PcapReplicator.Process (PcapProcess (..), pcapProcess)
-import System.Environment (getExecutablePath)
+import System.Environment (getExecutablePath, lookupEnv)
 
 parsersUnderTest, parsersUnderTestProg :: [PcapParserName]
 parsersUnderTest =
@@ -41,21 +43,26 @@ bestParserUnderTest :: String
 bestParserUnderTest = "ByteString"
 
 testFile :: FilePath
-testFile = "/home/ste/opt/haskell/rws/the10.pcap"
+testFile = "the10.pcap"
 
 main :: IO ()
 main = do
+    benchmarkPcapFilePath <- getPcapFilePath
     benchmarkBinaryPath <- getExecutablePath
     defaultMain
-        [ fileParse
-        , streamParse
+        [ fileParse benchmarkPcapFilePath
+        , streamParse benchmarkPcapFilePath
         , progParse benchmarkBinaryPath
         , progSend benchmarkBinaryPath
         ]
+  where
+    getPcapFilePath = do
+        rtDirPath <- fromMaybe "." <$> lookupEnv "XDG_RUNTIME_DIR"
+        pure $ rtDirPath </> testFile
 
-fileParse, streamParse :: Benchmark
-fileParse = makeBenchGroup "FileParse" bestParserUnderTest $ parseFile testFile
-streamParse = makeBenchGroup "StreamParse" bestParserUnderTest $ parseStream testFile
+fileParse, streamParse :: FilePath -> Benchmark
+fileParse testFilePath = makeBenchGroup "FileParse" bestParserUnderTest $ parseFile testFilePath
+streamParse testFilePath = makeBenchGroup "StreamParse" bestParserUnderTest $ parseStream testFilePath
 
 progParse :: String -> Benchmark
 progParse bbpath =

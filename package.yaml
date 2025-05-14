@@ -97,6 +97,7 @@ benchmarks:
     source-dirs:         bench
     dependencies:
     - bytestring
+    - filepath
     - pcap-replicator
     - process
     - tasty

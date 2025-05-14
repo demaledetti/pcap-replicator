@@ -50,14 +50,8 @@ fi
 
 app_args="$@"
 
-the_pcap1=~/opt/haskell/rws/the1.pcap
-packets=1000000
-the_pcap10=~/opt/haskell/rws/the10.pcap
-packets10=10000000
-the_pcap100=~/opt/haskell/rws/the100.pcap
-packets100=100000000
 
-the_pcap=~/opt/haskell/rws/the${len}.pcap
+the_pcap="${XDG_RUNTIME_DIR}/the${len}.pcap"
 packets=$(( $len * 1000 * 1000))
 
 echo "runnning benchmark $bench with $packets packets"
@@ -83,10 +77,10 @@ appbin() {
 }
 
 #title "cat"
-#time cat $the_pcap100 | pv -rt > /dev/null
+#time cat $the_pcap | pv -rt > /dev/null
 
 #title "pv"
-#time pv -rt $the_pcap100 > /dev/null
+#time pv -rt $the_pcap > /dev/null
 
 b_tcpdump() {
 title "tcpdump"

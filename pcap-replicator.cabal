@@ -117,6 +117,7 @@ benchmark pcap-replicator
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , filepath
     , fusion-plugin
     , pcap-replicator
     , process
