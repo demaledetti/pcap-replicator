@@ -7,7 +7,7 @@ module Main where
 import Control.Monad (void)
 import Control.Monad.Catch qualified as E
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.State (MonadState, get, modify, put, runStateT)
+import Control.Monad.State.Strict (MonadState, get, modify', put, runStateT)
 import Control.Tracer (natTracer)
 import Network.Socket (Socket)
 import Streamly.Data.Array qualified as Array
@@ -55,13 +55,13 @@ onEvent
 onEvent (Packet p) = do
     app@App{..} <- get
     clients' <- sendToAll (natTracer liftIO tracer) lastPcapStreamHeader p clients
-    put app{clients = clients'}
+    put $! app{clients = clients'}
     pure Run
 onEvent (StreamHeader h) = do
-    modify $ \app -> app{lastPcapStreamHeader = h}
+    modify' $ \app -> app{lastPcapStreamHeader = h}
     pure Run
 onEvent (NewClient sk) = do
-    modify $ \app@App{..} -> app{clients = New sk `Stream.cons` clients}
+    modify' $ \app@App{..} -> app{clients = New sk `Stream.cons` clients}
     pure Run
 onEvent SourceFinished = pure Done
 
