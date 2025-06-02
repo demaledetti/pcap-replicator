@@ -51,7 +51,7 @@ fi
 app_args="$@"
 
 
-the_pcap="${XDG_RUNTIME_DIR}/the${len}.pcap"
+the_pcap="${XDG_RUNTIME_DIR}/test${len}.pcap"
 packets=$(( $len * 1000 * 1000))
 
 echo "runnning benchmark $bench with $packets packets"
@@ -84,7 +84,7 @@ appbin() {
 
 b_tcpdump() {
 title "tcpdump"
-pv -rt $the_pcap | /usr/bin/time -v tcpdump -nnr - --count >> /tmp/debug.log 2>&1
+pv -rt $the_pcap | /usr/bin/time -v tcpdump -nnr - --count
 }
 
 b_app() {
@@ -103,9 +103,13 @@ EOF
 b_app_tcpdump() {
 local app=$1
 par "$app + tcpdump" <<EOF
-$(appbin $app) -1 "$app_args" \"sleep .1; time pv -rtc -N server $the_pcap\"
+$(appbin $app) -1 "$app_args" \"while ! ss -ntH \'( sport = :8091 )\' | grep -q .; do sleep .000001; done; time pv -rtc -N server $the_pcap\"
 cx=0; while ! ss -ntHl \'( sport = :8091 )\' | grep -q . && [ \$cx -ne 1000 ]; do sleep .000001; cx=\$\(\(\$cx +1)); done; time nc -d localhost 8091 | pv -rtc -N client | tcpdump -nnr - --count
 EOF
+if [ "$quiet" = "-q" ]
+then
+cat /tmp/debug.log | grep "^$packets packets$"
+fi
 }
 
 case $bench in

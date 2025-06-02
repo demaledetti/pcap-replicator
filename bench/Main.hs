@@ -8,14 +8,16 @@ module Main where
 import Control.Monad (void, when)
 import Data.ByteString qualified as BS
 import Data.Maybe (fromMaybe)
+import Data.Proxy (Proxy(..))
 import Streamly.Data.Array as A
 import Streamly.Data.Fold qualified as Fold
 import Streamly.Data.Stream.Prelude qualified as Stream
 import System.FilePath ((</>))
 import System.IO (IOMode (..), withBinaryFile)
 import System.Process (callProcess)
-import Test.Tasty (localOption)
+import Test.Tasty (askOption, defaultMainWithIngredients, includingOptions, localOption, testGroup)
 import Test.Tasty.Bench
+import Test.Tasty.Options
 import Test.Tasty.Patterns.Printer (printAwkExpr)
 
 import PcapReplicator
@@ -23,78 +25,93 @@ import PcapReplicator.Parser (getParser)
 import PcapReplicator.Process (PcapProcess (..), pcapProcess)
 import System.Environment (getExecutablePath, lookupEnv)
 
+type BenchBuilder = PcapParser -> IO ()
+data ProgBenchArgs = ProgBenchArgs PcapParserName -- Int
+
 parsersUnderTest, parsersUnderTestProg :: [PcapParserName]
 parsersUnderTest =
     [ ByteString
     , Array
     -- , Unfold
     -- , Fold
-    -- , FoldCP
+    -- -- , FoldCP
     -- , ParserMAChunked
     -- , ParserChunked
-    -- , ParserCPChunked
-    -- , ParserMA
-    -- , Parser
-    -- , ParserCP
+    -- -- , ParserCPChunked
+    -- -- , ParserMA
+    -- -- , Parser
+    -- -- , ParserCP
     ]
 parsersUnderTestProg = parsersUnderTest
 
 bestParserUnderTest :: String
 bestParserUnderTest = "ByteString"
 
-testFile :: FilePath
-testFile = "the10.pcap"
+compareWithBaseline :: String -> String -> String -> Benchmark -> Benchmark
+compareWithBaseline group name baseline benchmark =
+    if name == baseline
+        then benchmark
+        else bcompare baselineBenchPat benchmark
+  where
+    baselineBenchPat = printAwkExpr $ locateBenchmark [baseline, group]
+
+aMillion :: Int
+aMillion = 10^(6 :: Int)
+
+newtype PacketMillions = PacketMillions Int
+
+instance IsOption PacketMillions where
+  defaultValue = PacketMillions 10
+  parseValue = fmap PacketMillions . safeRead
+  optionName = pure "packet-millions"
+  optionHelp = pure "Millions of packets used in benchmarks"
 
 main :: IO ()
 main = do
-    benchmarkPcapFilePath <- getPcapFilePath
     benchmarkBinaryPath <- getExecutablePath
-    defaultMain
-        [ fileParse benchmarkPcapFilePath
-        , streamParse benchmarkPcapFilePath
-        , progParse benchmarkBinaryPath
-        , progSend benchmarkBinaryPath
-        ]
+    rtDirPath <- fromMaybe "." <$> lookupEnv "XDG_RUNTIME_DIR"
+    let customOpts  = [Option (Proxy :: Proxy PacketMillions)]
+        ingredients = includingOptions customOpts : benchIngredients
+        benchmarks = testGroup "All"
+              [ fileParse rtDirPath
+              , streamParse rtDirPath
+              , progParse benchmarkBinaryPath
+              , progSend benchmarkBinaryPath
+              ]
+    defaultMainWithIngredients ingredients benchmarks
+
+makeParseBench :: String -> (FilePath -> Int -> BenchBuilder) -> FilePath -> Benchmark
+makeParseBench name action rtDirPath = askOption $ \(PacketMillions pm) ->
+    let
+        pcapFilePath = rtDirPath </> "test" <> show pm <> ".pcap"
+    in
+        makeBenchGroup name bestParserUnderTest $ action pcapFilePath pm
+
+makeBenchGroup :: String -> String -> BenchBuilder -> Benchmark
+makeBenchGroup group baseline builder =
+    bgroup group $ single <$> parsersUnderTest
   where
-    getPcapFilePath = do
-        rtDirPath <- fromMaybe "." <$> lookupEnv "XDG_RUNTIME_DIR"
-        pure $ rtDirPath </> testFile
+    single parserName =
+        let parse = getParser parserName
+            name = show parserName
+            benchmark = bench name $ whnfIO $ builder parse
+         in compareWithBaseline group name baseline benchmark
 
 fileParse, streamParse :: FilePath -> Benchmark
-fileParse testFilePath = makeBenchGroup "FileParse" bestParserUnderTest $ parseFile testFilePath
-streamParse testFilePath = makeBenchGroup "StreamParse" bestParserUnderTest $ parseStream testFilePath
+fileParse = makeParseBench "FileParse" parseFile
+streamParse = makeParseBench "StreamParse" parseStream
 
-progParse :: String -> Benchmark
-progParse bbpath =
-    localOption WallTime $
-        bgroup
-            "ProgParse"
-            ( makeProgBench bbpath "tcpdump" "tcpdump" []
-                : multiProgBench bbpath "app-ioref" "tcpdump"
-                ++ multiProgBench bbpath "app-statet" "tcpdump"
-            )
-
-progSend :: String -> Benchmark
-progSend bbpath =
-    localOption WallTime $
-        bgroup
-            "ProgSend"
-            ( makeProgBench bbpath "tcpdump_tcpdump" "tcpdump_tcpdump" []
-                : multiProgBench bbpath "app_tcpdump-ioref" "tcpdump_tcpdump"
-                ++ multiProgBench bbpath "app_tcpdump-statet" "tcpdump_tcpdump"
-            )
-
-parseFile :: FilePath -> PcapParser -> IO ()
-parseFile path parse = do
+parseFile :: FilePath -> Int -> PcapParser -> IO ()
+parseFile path packetMillions parse = do
     withBinaryFile path ReadMode $ \handle -> do
         void $ BS.hGet handle 24
         result <- Stream.fold Fold.length $ parse readChunkLength handle
-        when (result /= 10000000) $ error ("Wrong result: " ++ show result)
+        when (result /= packetMillions * aMillion) $ error ("Wrong result: " ++ show result)
   where
     readChunkLength = 32 * 1024
 
-parseStream :: FilePath -> PcapParser -> IO ()
-parseStream path parse = do
+parseStream :: FilePath -> Int -> PcapParser -> IO ()
+parseStream path packetMillions parse = do
     PcapProcess{..} <-
         pcapProcess ("cat " ++ path) parse chunkLength readChunkLength
     mFirst <- Stream.uncons pcapPacketStream
@@ -117,49 +134,41 @@ parseStream path parse = do
     chunkLength = 64 * 1024
     readChunkLength = 4096 * 1024
     packetLength = 66
-    packets = 10000000
+    packets = packetMillions * aMillion
     sourceLength = packetLength * packets
 
-type BenchBuilder = PcapParser -> IO ()
+makeProgBenchGroup :: String -> String -> String -> String -> Benchmark
+makeProgBenchGroup group baseline app bbpath =
+    localOption WallTime $ askOption $ \(PacketMillions pm) ->
+      let
+        makeProgBench :: String -> [String] -> Benchmark
+        makeProgBench name appArgs =
+            let nameWithArgs = name ++ if null appArgs then "" else " " ++ unwords appArgs
+                benchmark =
+                    bench nameWithArgs $
+                        whnfIO $
+                            callProcess "./bench.sh" $
+                                [name, "-s", show pm, "-q", "-b", bbpath, "--"] ++ appArgs
+             in compareWithBaseline group name baseline benchmark
 
-makeBenchGroup :: String -> String -> BenchBuilder -> Benchmark
-makeBenchGroup group baseline builder =
-    bgroup group $ single <$> parsersUnderTestProg
-  where
-    single parserName =
-        let baselineExpr = group ++ "." ++ baseline
-            parse = getParser parserName
-            name = show parserName
-            benchmark = bench name $ whnfIO $ builder parse
-         in if name == baseline then benchmark else bcompare baselineExpr benchmark
+        multiProgBench :: String -> [Benchmark]
+        multiProgBench name = makeProgBench name . toArgs <$> combinations
+          where
+            combinations =
+                ProgBenchArgs
+                    <$> parsersUnderTestProg
+                    -- <*> ((* 1024) <$> [64]) -- [{-0, 16,32,-} 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16*1024])
+            toArgs (ProgBenchArgs parserName) =
+                ["-P", show parserName]
+            -- toArgs (ProgBenchArgs parserName bufferSize) =
+            --     ["-P", show parserName, "-b", show bufferSize]
+      in
+        bgroup
+            group
+            ( makeProgBench baseline []
+                : concatMap (\impl -> multiProgBench (app <> "-" <> impl)) ["ioref", "statet"]
+            )
 
-makeProgBench :: String -> String -> String -> [String] -> Benchmark
-makeProgBench bbpath name baseline appArgs =
-    let nameWithArgs = name ++ if null appArgs then "" else " " ++ unwords appArgs
-        benchmark =
-            bench nameWithArgs $
-                whnfIO $
-                    callProcess "./bench.sh" $
-                        [name, "-s", "10", "-q", "-b", bbpath, "--"] ++ appArgs
-     in compareWithBaseline name baseline benchmark
-
-multiProgBench :: String -> String -> String -> [Benchmark]
-multiProgBench bbpath name baseline = makeProgBench bbpath name baseline . toArgs <$> combinations
-  where
-    combinations =
-        ProgBenchArgs
-            <$> parsersUnderTest
-            <*> ((* 1024) <$> [64]) -- [{-0, 16,-} 32, 64, 128, 256])
-    toArgs (ProgBenchArgs parserName bufferSize) =
-        ["-P", show parserName, "-b", show bufferSize]
-
-data ProgBenchArgs = ProgBenchArgs PcapParserName Int
-
-compareWithBaseline :: String -> String -> Benchmark -> Benchmark
-compareWithBaseline name baseline benchmark =
-    if name == baseline
-        then benchmark
-        else bcompare (baselineBenchPat baseline) benchmark
-
-baselineBenchPat :: String -> String
-baselineBenchPat name = printAwkExpr $ locateBenchmark [name]
+progParse, progSend :: String -> Benchmark
+progParse = makeProgBenchGroup "ProgParse" "tcpdump" "app"
+progSend = makeProgBenchGroup "ProgSend" "tcpdump_tcpdump" "app_tcpdump"
