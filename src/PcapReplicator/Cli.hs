@@ -78,5 +78,7 @@ cli defaultBufferSize =
 parseCli :: Int -> IO Options
 parseCli defaultBufferSize = execParser opts
   where
-    opts = info (cli defaultBufferSize <**> helper)
-                (fullDesc <> footer "The defaults have been chosen by benchmarking")
+    opts =
+        info
+            (cli defaultBufferSize <**> helper)
+            (fullDesc <> footer "The defaults have been chosen by benchmarking")
