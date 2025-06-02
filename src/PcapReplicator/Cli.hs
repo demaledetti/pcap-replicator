@@ -17,8 +17,8 @@ data Options = Options
     }
     deriving (Show)
 
-cli :: Parser Options
-cli =
+cli :: Int -> Parser Options
+cli defaultBufferSize =
     Options
         -- server options
         <$> option
@@ -44,7 +44,7 @@ cli =
             auto
             ( long "parser"
                 <> short 'P'
-                <> help "Pcap parser to use (for benchmarking)"
+                <> help "Pcap parser to use"
                 <> showDefault
                 <> value ByteString
                 <> metavar "PARSER"
@@ -53,16 +53,16 @@ cli =
             auto
             ( long "bufferBytes"
                 <> short 'b'
-                <> help "Size of send buffer in bytes (for benchmarking)"
+                <> help "Size of send buffer in bytes"
                 <> showDefault
-                <> value (32 * 1024)
+                <> value defaultBufferSize
                 <> metavar "BUFFER"
             )
         <*> option
             auto
             ( long "readBufferBytes"
                 <> short 'r'
-                <> help "Size of read buffer in bytes (for benchmarking)"
+                <> help "Size of read buffer in bytes"
                 <> showDefault
                 <> value (32 * 1024)
                 <> metavar "RBUFFER"
@@ -75,7 +75,8 @@ cli =
         -- required arguments
         <*> some (argument str (metavar "CMD..."))
 
-parseCli :: IO Options
-parseCli = execParser opts
+parseCli :: Int -> IO Options
+parseCli defaultBufferSize = execParser opts
   where
-    opts = info (cli <**> helper) fullDesc
+    opts = info (cli defaultBufferSize <**> helper)
+                (fullDesc <> footer "The defaults have been chosen by benchmarking")

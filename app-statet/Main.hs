@@ -37,9 +37,12 @@ data Event
     | SourceFinished
 data ProgramState = Run | Done deriving (Eq)
 
+bestBufferSizeForStateTImpl :: Int
+bestBufferSizeForStateTImpl = 256 * 1024
+
 main :: IO ()
 main = do
-    options <- parseCli
+    options <- parseCli bestBufferSizeForStateTImpl
     print options
 
     let app = App options stdoutIOTextTracer Stream.nil (Array.fromList [])
