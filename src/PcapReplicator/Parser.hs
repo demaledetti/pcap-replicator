@@ -2,6 +2,7 @@ module PcapReplicator.Parser (getParser) where
 
 import PcapReplicator
 
+import PcapReplicator.Parser.Binary qualified
 import PcapReplicator.Parser.Fold qualified
 import PcapReplicator.Parser.FoldCP qualified
 import PcapReplicator.Parser.Parser qualified
@@ -18,6 +19,6 @@ getParser name = case name of
     ParserChunked -> PcapReplicator.Parser.Parser.parsePChunked
     ParserCPChunked -> PcapReplicator.Parser.Parser.parseCPChunked
     ParserMAChunked -> PcapReplicator.Parser.Parser.parseMAChunked
-    ByteString -> PcapReplicator.Parser.Streaming.parseBS
-    Array -> PcapReplicator.Parser.Streaming.parseA
+    StreamingAttoparsec -> PcapReplicator.Parser.Streaming.parse
+    Binary -> PcapReplicator.Parser.Binary.parse
     Unfold -> PcapReplicator.Parser.Unfold.parseU

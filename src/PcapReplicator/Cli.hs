@@ -46,7 +46,7 @@ cli defaultBufferSize =
                 <> short 'P'
                 <> help "Pcap parser to use"
                 <> showDefault
-                <> value ByteString
+                <> value StreamingAttoparsec
                 <> metavar "PARSER"
             )
         <*> option

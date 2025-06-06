@@ -52,6 +52,7 @@ library:
   source-dirs: src
   dependencies:
   - attoparsec
+  - binary
   - bytestring
   - contra-tracer
   - exceptions

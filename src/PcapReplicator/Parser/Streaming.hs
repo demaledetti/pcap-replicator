@@ -1,8 +1,9 @@
-module PcapReplicator.Parser.Streaming (parseA, parseBS) where
+module PcapReplicator.Parser.Streaming (parse) where
 
 import Control.Monad (void)
 import Data.Attoparsec.ByteString qualified as A
 import Data.Attoparsec.ByteString.Streaming qualified as AS
+import Data.Attoparsec.Combinator qualified as AC
 import Streaming.ByteString qualified as Q
 import Streaming.Prelude qualified as Streaming
 import Streamly.Data.Stream.Prelude qualified as Stream
@@ -11,11 +12,8 @@ import Streamly.External.ByteString qualified as Strict
 import PcapReplicator
 import PcapReplicator.Parser.Utils
 
-parseBS :: PcapParser
-parseBS = parse' packetBS
-
-parseA :: PcapParser
-parseA = parse' packetA
+parse :: PcapParser
+parse = parse' packet
 
 parse' :: A.Parser PcapPacketA -> PcapParser
 parse' parser readBufferBytes handle = Stream.unfoldrM Streaming.uncons streamFromHandle
@@ -25,14 +23,11 @@ parse' parser readBufferBytes handle = Stream.unfoldrM Streaming.uncons streamFr
 
     streamFromHandle = void . AS.parsed parser $ Q.hGetContentsN readBufferBytes handle
 
-packetBS :: A.Parser PcapPacketA
-packetBS = do
-    hdr <- A.take 16
-    bts <- A.take $ capturedPacketLengthBS hdr
-    pure $! Strict.toArray $! hdr <> bts
+packetLength :: A.Parser Int
+packetLength = capturedPacketLengthBS <$> A.take 16
 
-packetA :: A.Parser PcapPacketA
-packetA = do
-    hdr <- Strict.toArray <$> A.take 16
-    bts <- Strict.toArray <$> A.take (capturedPacketLength hdr)
-    pure $! hdr <> bts
+packet :: A.Parser PcapPacketA
+packet = do
+    capturedPacketLength' <- AC.lookAhead packetLength
+    packet' <- A.take (16 + capturedPacketLength')
+    pure $! Strict.toArray packet'

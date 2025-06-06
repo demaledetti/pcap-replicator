@@ -36,13 +36,13 @@ data ProgBenchArgs = ProgBenchArgs PcapParserName -- Int
 
 parsersUnderTest, parsersUnderTestProg :: [PcapParserName]
 parsersUnderTest =
-    [ ByteString
-    , Array
+    [ StreamingAttoparsec
+    , Binary
     -- , Unfold
     -- , Fold
     -- -- , FoldCP
-    -- , ParserMAChunked
     -- , ParserChunked
+    -- , ParserMAChunked
     -- -- , ParserCPChunked
     -- -- , ParserMA
     -- -- , Parser
@@ -51,7 +51,13 @@ parsersUnderTest =
 parsersUnderTestProg = parsersUnderTest
 
 bestParserUnderTest :: String
-bestParserUnderTest = "ByteString"
+bestParserUnderTest = "StreamingAttoparsec"
+
+progsUnderTest :: [String]
+progsUnderTest =
+    [ "ioref"
+    -- , "statet"
+    ]
 
 compareWithBaseline :: String -> String -> String -> Benchmark -> Benchmark
 compareWithBaseline group name baseline benchmark =
@@ -142,7 +148,7 @@ parseStream path packetMillions parse = do
         Nothing -> error "Empty stream"
   where
     chunkLength = 64 * 1024
-    readChunkLength = 4096 * 1024
+    readChunkLength = 32 * 1024
     packetLength = 66
     packets = packetMillions * aMillion
     sourceLength = packetLength * packets
@@ -177,7 +183,7 @@ makeProgBenchGroup group baseline app bbpath =
             bgroup
                 group
                 ( makeProgBench baseline []
-                    : concatMap (\impl -> multiProgBench (app <> "-" <> impl)) ["ioref", "statet"]
+                    : concatMap (\impl -> multiProgBench (app <> "-" <> impl)) progsUnderTest
                 )
 
 progParse, progSend :: String -> Benchmark
