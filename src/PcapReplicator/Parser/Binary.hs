@@ -29,20 +29,17 @@ getPacket = do
     pure $! Strict.toArray packet
 
 parse' :: Get BytesA -> PcapParser
-parse' parser readBufferBytes handle = Stream.unfoldrM go (decoder, handle)
+parse' parser readBufferBytes handle = Stream.unfoldrM feed decoder
   where
-    -- go (d, h) = feed d h
-    go = uncurry feed
-
     decoder = runGetIncremental parser
 
-    feed (Done leftover _consumed packet) h = pure (Just (packet, (pushChunk decoder leftover, h)))
-    feed (Fail _leftover _consumed _str) _ = pure Nothing
-    feed (Partial k) h = do
-        chunk <- BS.hGet h readBufferBytes
+    feed (Done leftover _consumed packet) = pure (Just (packet, pushChunk decoder leftover))
+    feed (Fail _leftover _consumed _str) = pure Nothing
+    feed (Partial k) = do
+        chunk <- BS.hGet handle readBufferBytes
         if BS.null chunk
-            then feed (k Nothing) h
-            else feed (k (Just chunk)) h
+            then feed (k Nothing)
+            else feed (k (Just chunk))
 
 parse :: PcapParser
 parse = parse' getPacket
