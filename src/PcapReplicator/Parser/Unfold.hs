@@ -24,14 +24,14 @@ parse readBufferBytes handle = Stream.unfoldrM feed decoder
   where
     decoder = Partial processChunk
 
-    feed (Done leftover packet) = pure (Just (packet, processChunk leftover))
+    feed (Done packet leftover) = pure (Just (packet, processChunk leftover))
     feed (Partial k) = do
         chunk <- mytake handle readBufferBytes
         if Array.null chunk
             then pure Nothing
             else feed (k chunk)
 
-data Decoder = Done BytesA BytesA | Partial (BytesA -> Decoder)
+data Decoder = Done !BytesA !BytesA | Partial !(BytesA -> Decoder)
 
 processChunk :: BytesA -> Decoder
 processChunk chunk =
@@ -39,14 +39,12 @@ processChunk chunk =
         then
             askForMore
         else
-            let capturedPacketLength' = capturedPacketLength chunk
-                off2 = 16 + capturedPacketLength'
+            let !capturedPacketLength' = capturedPacketLength chunk
+                !off2 = 16 + capturedPacketLength'
              in if
+                    | off2 < len -> uncurry Done (Array.splitAt off2 chunk)
                     | off2 > len -> askForMore
-                    | off2 < len ->
-                        let (packet, rest) = Array.splitAt off2 chunk
-                         in Done rest packet
-                    | otherwise -> Done Array.empty chunk
+                    | otherwise -> Done chunk Array.empty
   where
     len = Array.length chunk
-    askForMore = Partial $ \newchunk -> processChunk $ chunk <> newchunk
+    askForMore = Partial (\newchunk -> processChunk $! chunk <> newchunk)
