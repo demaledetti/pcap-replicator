@@ -24,7 +24,7 @@ parse' parser readBufferBytes handle = Stream.unfoldrM Streaming.uncons streamFr
     streamFromHandle = void . AS.parsed parser $ Q.hGetContentsN readBufferBytes handle
 
 packetLength :: A.Parser Int
-packetLength = capturedPacketLengthBS <$> A.take 16
+packetLength = capturedPacketLengthBS <$> A.take 12
 
 packet :: A.Parser PcapPacketA
 packet = do
