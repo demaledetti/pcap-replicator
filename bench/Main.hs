@@ -36,10 +36,9 @@ data ProgBenchArgs = ProgBenchArgs PcapParserName -- Int
 
 parsersUnderTest, parsersUnderTestProg :: [PcapParserName]
 parsersUnderTest =
-    [ StreamingAttoparsec
-    , Binary
-    -- , Unfold
-    , UnfoldChunked
+    [ Unfold
+    , StreamingAttoparsec
+    -- , Binary
     -- , Fold
     -- -- , FoldCP
     -- , ParserChunked
@@ -52,7 +51,7 @@ parsersUnderTest =
 parsersUnderTestProg = parsersUnderTest
 
 bestParserUnderTest :: String
-bestParserUnderTest = "StreamingAttoparsec"
+bestParserUnderTest = "Unfold"
 
 progsUnderTest :: [String]
 progsUnderTest =

@@ -29,7 +29,6 @@ data PcapParserName
     = Fold
     | FoldCP
     | Unfold
-    | UnfoldChunked
     | StreamingAttoparsec
     | Binary
     | Parser
