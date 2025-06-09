@@ -39,14 +39,7 @@ parsersUnderTest =
     [ Unfold
     , StreamingAttoparsec
     -- , Binary
-    -- , Fold
-    -- -- , FoldCP
-    -- , ParserChunked
-    -- , ParserMAChunked
-    -- -- , ParserCPChunked
-    -- -- , ParserMA
-    -- -- , Parser
-    -- -- , ParserCP
+    -- , None -- XXX works only for Prog benchmarks
     ]
 parsersUnderTestProg = parsersUnderTest
 

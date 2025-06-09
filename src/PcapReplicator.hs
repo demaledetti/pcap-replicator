@@ -26,17 +26,10 @@ import System.IO (Handle)
 import PcapReplicator.Network
 
 data PcapParserName
-    = Fold
-    | FoldCP
-    | Unfold
+    = Unfold
     | StreamingAttoparsec
     | Binary
-    | Parser
-    | ParserMA
-    | ParserCP
-    | ParserChunked
-    | ParserMAChunked
-    | ParserCPChunked
+    | None
     deriving (Read, Show)
 
 type BytesA = Array.Array Word8

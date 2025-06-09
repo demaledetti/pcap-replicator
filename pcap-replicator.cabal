@@ -36,9 +36,7 @@ library
       PcapReplicator.Network
       PcapReplicator.Parser
       PcapReplicator.Parser.Binary
-      PcapReplicator.Parser.Fold
-      PcapReplicator.Parser.FoldCP
-      PcapReplicator.Parser.Parser
+      PcapReplicator.Parser.None
       PcapReplicator.Parser.Streaming
       PcapReplicator.Parser.Unfold
       PcapReplicator.Parser.Utils
