@@ -8,7 +8,6 @@ module PcapReplicator (
     PcapParserName (..),
     PcapStreamHeaderA,
     StreamOfBytesA,
-    right,
     drain,
 ) where
 
@@ -56,10 +55,6 @@ sendToAll tracer header packet clients =
     nextChunk (New sk) = (header <> packet, sk)
     nextChunk (Old sk) = (packet, sk)
     generalizeInner = Stream.morphInner (return . runIdentity)
-
-right :: Either a b -> b
-right (Right r) = r
-right _ = error "lala"
 
 drain :: (Monad m) => Stream.Stream m a -> m ()
 drain = Stream.fold Fold.drain
