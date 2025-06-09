@@ -39,6 +39,7 @@ parsersUnderTest =
     [ StreamingAttoparsec
     , Binary
     -- , Unfold
+    , UnfoldChunked
     -- , Fold
     -- -- , FoldCP
     -- , ParserChunked

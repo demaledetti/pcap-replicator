@@ -22,3 +22,4 @@ getParser name = case name of
     StreamingAttoparsec -> PcapReplicator.Parser.Streaming.parse
     Binary -> PcapReplicator.Parser.Binary.parse
     Unfold -> PcapReplicator.Parser.Unfold.parseU
+    UnfoldChunked -> PcapReplicator.Parser.Unfold.parse
