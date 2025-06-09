@@ -39,9 +39,10 @@ parsersUnderTest =
     [ Unfold
     , StreamingAttoparsec
     -- , Binary
-    -- , None -- XXX works only for Prog benchmarks
     ]
-parsersUnderTestProg = parsersUnderTest
+
+-- XXX None works only for Prog benchmarks
+parsersUnderTestProg = parsersUnderTest -- <> [None]
 
 bestParserUnderTest :: String
 bestParserUnderTest = "Unfold"
