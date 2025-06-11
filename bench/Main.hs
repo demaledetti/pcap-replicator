@@ -27,12 +27,12 @@ import Test.Tasty.Options
 import Test.Tasty.Patterns.Printer (printAwkExpr)
 
 import PcapReplicator
+import PcapReplicator.Cli (PerformanceTunables (..), toArgs)
 import PcapReplicator.Parser (getParser)
 import PcapReplicator.Process (PcapProcess (..), pcapProcess)
 import System.Environment (getExecutablePath, lookupEnv)
 
 type BenchBuilder = PcapParser -> IO ()
-data ProgBenchArgs = ProgBenchArgs PcapParserName -- Int
 
 parsersUnderTest, parsersUnderTestProg :: [PcapParserName]
 parsersUnderTest =
@@ -40,9 +40,12 @@ parsersUnderTest =
     , StreamingAttoparsec
     -- , Binary
     ]
-
 -- XXX None works only for Prog benchmarks
 parsersUnderTestProg = parsersUnderTest -- <> [None]
+
+combinations, combinationsProg :: [PerformanceTunables]
+combinations = PerformanceTunables <$> parsersUnderTest <*> [k 64] <*> [k 32]
+combinationsProg = PerformanceTunables <$> parsersUnderTestProg <*> [k 64] <*> [k 32]
 
 bestParserUnderTest :: String
 bestParserUnderTest = "Unfold"
@@ -98,11 +101,11 @@ makeParseBench name action rtDirPath = askOption $ \(PacketMillions pm) ->
 
 makeBenchGroup :: String -> String -> BenchBuilder -> Benchmark
 makeBenchGroup group baseline builder =
-    bgroup group $ single <$> parsersUnderTest
+    bgroup group $ single <$> combinations
   where
-    single parserName =
-        let parse = getParser parserName
-            name = show parserName
+    single PerformanceTunables{..} =
+        let parse = getParser pcapParserName
+            name = show pcapParserName
             benchmark = bench name $ whnfIO $ builder parse
          in compareWithBaseline group name baseline benchmark
 
@@ -153,7 +156,7 @@ makeProgBenchGroup group baseline app bbpath =
         let
             makeProgBench :: String -> [String] -> Benchmark
             makeProgBench name appArgs =
-                let nameWithArgs = name ++ if null appArgs then "" else " " ++ unwords appArgs
+                let nameWithArgs = unwords $ name : appArgs
                     benchmark =
                         bench nameWithArgs $
                             whnfIO $
@@ -162,18 +165,8 @@ makeProgBenchGroup group baseline app bbpath =
                  in compareWithBaseline group name baseline benchmark
 
             multiProgBench :: String -> [Benchmark]
-            multiProgBench name = makeProgBench name . toArgs <$> combinations
-              where
-                combinations =
-                    ProgBenchArgs
-                        <$> parsersUnderTestProg
-                -- <*> ((* 1024) <$> [64]) -- [{-0, 16,32,-} 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16*1024])
-                toArgs (ProgBenchArgs parserName) =
-                    ["-P", show parserName]
+            multiProgBench name = makeProgBench name . toArgs <$> combinationsProg
          in
-            -- toArgs (ProgBenchArgs parserName bufferSize) =
-            --     ["-P", show parserName, "-b", show bufferSize]
-
             bgroup
                 group
                 ( makeProgBench baseline []
@@ -183,3 +176,6 @@ makeProgBenchGroup group baseline app bbpath =
 progParse, progSend :: String -> Benchmark
 progParse = makeProgBenchGroup "ProgParse" "tcpdump" "app"
 progSend = makeProgBenchGroup "ProgSend" "tcpdump_tcpdump" "app_tcpdump"
+
+k :: Int -> Int
+k = (* 1024)

@@ -14,7 +14,7 @@ import Streamly.Data.Array qualified as Array
 import Streamly.Data.Stream.Prelude qualified as Stream
 
 import PcapReplicator
-import PcapReplicator.Cli (Options (..), parseCli)
+import PcapReplicator.Cli
 import PcapReplicator.Log
 import PcapReplicator.Network
 import PcapReplicator.Parser (getParser)
@@ -49,7 +49,7 @@ main = do
         runApp =
             drain . Stream.takeWhile (== Run) $
                 Stream.mapM onEvent $
-                    Stream.parList (Stream.maxBuffer 2) [server app, source app]
+                    Stream.parList (Stream.maxBuffer 2) [runServer app, source app]
     void $ runStateT runApp app
 
 onEvent
@@ -68,18 +68,20 @@ onEvent (NewClient sk) = do
     pure Run
 onEvent SourceFinished = pure Done
 
-server :: (Stream.MonadAsync m, E.MonadCatch m) => App -> Stream.Stream m Event
-server App{..} = NewClient <$> tcpServer (natTracer liftIO tracer)
+runServer
+    :: (Stream.MonadAsync m, E.MonadCatch m) => App -> Stream.Stream m Event
+runServer App{..} = NewClient <$> tcpServer (natTracer liftIO tracer)
 
 source :: (Stream.MonadAsync m) => App -> Stream.Stream m Event
 source App{..} = Stream.unfoldrM step Nothing
   where
     cmdLine = unwords config.cmd
-    parser = getParser config.pcapParserName
+    PerformanceTunables{..} = config.tunables
+    parser = getParser pcapParserName
     step Nothing = do
         -- liftIO $ print "Start process"
         pp@PcapProcess{..} <-
-            liftIO $ pcapProcess cmdLine parser config.bufferBytes config.readBufferBytes
+            liftIO $ pcapProcess cmdLine parser bufferBytes readBufferBytes
         pure $ Just (StreamHeader pcapStreamHeader, Just pp)
     step (Just pp@PcapProcess{..}) =
         liftIO (Stream.uncons pcapPacketStream) >>= \case

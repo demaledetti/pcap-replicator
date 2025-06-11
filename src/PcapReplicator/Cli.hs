@@ -1,4 +1,6 @@
-module PcapReplicator.Cli (Options (..), parseCli) where
+{-# LANGUAGE RecordWildCards #-}
+
+module PcapReplicator.Cli (Options (..), parseCli, PerformanceTunables (..), ServerOptions (..), toArgs) where
 
 import HaskellWorks.Data.Network.Ip.Ipv4 (IpAddress (..))
 import Network.Socket (PortNumber)
@@ -7,65 +9,93 @@ import Options.Applicative
 import PcapReplicator
 
 data Options = Options
-    { ip :: !IpAddress
-    , port :: !PortNumber
-    , pcapParserName :: !PcapParserName
-    , bufferBytes :: !Int
-    , readBufferBytes :: !Int
+    { server :: !ServerOptions
+    , tunables :: !PerformanceTunables
     , once :: !Bool
     , cmd :: ![String]
     }
     deriving (Show)
 
+data ServerOptions = ServerOptions
+    { ip :: !IpAddress
+    , port :: !PortNumber
+    }
+    deriving (Show)
+
+data PerformanceTunables = PerformanceTunables
+    { pcapParserName :: !PcapParserName
+    , bufferBytes :: !Int
+    , readBufferBytes :: !Int
+    }
+    deriving (Show)
+
+toArgs :: PerformanceTunables -> [String]
+toArgs PerformanceTunables{..} =
+    [ "-P"
+    , show pcapParserName
+    , "-b"
+    , show bufferBytes
+    , "-r"
+    , show readBufferBytes
+    ]
+
 cli :: Int -> Parser Options
 cli defaultBufferSize =
     Options
         -- server options
-        <$> option
-            auto
-            ( long "ip"
-                <> short 'i'
-                <> help "IP address to listen to"
-                <> showDefault
-                <> value (IpAddress 0)
-                <> metavar "IP"
-            )
-        <*> option
-            auto
-            ( long "port"
-                <> short 'p'
-                <> help "Port to listen to"
-                <> showDefault
-                <> value 8091
-                <> metavar "PORT"
+        <$> parserOptionGroup
+            "Server options:"
+            ( ServerOptions
+                <$> option
+                    auto
+                    ( long "ip"
+                        <> short 'i'
+                        <> help "IP address to listen to"
+                        <> showDefault
+                        <> value (IpAddress 0)
+                        <> metavar "IP"
+                    )
+                <*> option
+                    auto
+                    ( long "port"
+                        <> short 'p'
+                        <> help "Port to listen to"
+                        <> showDefault
+                        <> value 8091
+                        <> metavar "PORT"
+                    )
             )
         -- benchmarking options
-        <*> option
-            auto
-            ( long "parser"
-                <> short 'P'
-                <> help "Pcap parser to use"
-                <> showDefault
-                <> value StreamingAttoparsec
-                <> metavar "PARSER"
-            )
-        <*> option
-            auto
-            ( long "bufferBytes"
-                <> short 'b'
-                <> help "Size of send buffer in bytes"
-                <> showDefault
-                <> value defaultBufferSize
-                <> metavar "BUFFER"
-            )
-        <*> option
-            auto
-            ( long "readBufferBytes"
-                <> short 'r'
-                <> help "Size of read buffer in bytes"
-                <> showDefault
-                <> value (32 * 1024)
-                <> metavar "RBUFFER"
+        <*> parserOptionGroup
+            "Performance tunables:"
+            ( PerformanceTunables
+                <$> option
+                    auto
+                    ( long "parser"
+                        <> short 'P'
+                        <> help "Pcap parser to use"
+                        <> showDefault
+                        <> value Unfold
+                        <> metavar "PARSER"
+                    )
+                <*> option
+                    auto
+                    ( long "bufferBytes"
+                        <> short 'b'
+                        <> help "Size of send buffer in bytes"
+                        <> showDefault
+                        <> value defaultBufferSize
+                        <> metavar "BUFFER"
+                    )
+                <*> option
+                    auto
+                    ( long "readBufferBytes"
+                        <> short 'r'
+                        <> help "Size of read buffer in bytes"
+                        <> showDefault
+                        <> value (32 * 1024)
+                        <> metavar "RBUFFER"
+                    )
             )
         <*> switch
             ( long "once"
@@ -81,4 +111,6 @@ parseCli defaultBufferSize = execParser opts
     opts =
         info
             (cli defaultBufferSize <**> helper)
-            (fullDesc <> footer "The defaults have been chosen by benchmarking")
+            ( fullDesc
+                <> footer "The performance tunable defaults have been chosen by benchmarking"
+            )

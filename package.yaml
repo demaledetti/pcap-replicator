@@ -59,7 +59,7 @@ library:
   - hw-ip >= 2.4.2.0
   - network
   - network-simple
-  - optparse-applicative
+  - optparse-applicative >= 0.19
   - process
   - say
   - streaming

@@ -1,5 +1,7 @@
 packages:
     ./
+--    ../streamly
+--    ../streamly/core
 
 benchmarks: True
 
@@ -8,3 +10,8 @@ optimization: 2
 -- with-compiler: ghc-9.12.2
 -- with-compiler: ghc-9.10.1
 with-compiler: ghc-9.8.4
+
+-- allow-newer: streamly-core
+allow-newer:
+    -- for hw-ip
+    optparse-applicative
