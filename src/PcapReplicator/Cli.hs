@@ -24,7 +24,8 @@ data ServerOptions = ServerOptions
     deriving (Show)
 
 data PerformanceTunables = PerformanceTunables
-    { pcapParserName :: !PcapParserName
+    { stateImplementation :: !StateImplementationName
+    , pcapParserName :: !PcapParserName
     , bufferBytes :: !Int
     , readBufferBytes :: !Int
     }
@@ -32,7 +33,9 @@ data PerformanceTunables = PerformanceTunables
 
 toArgs :: PerformanceTunables -> [String]
 toArgs PerformanceTunables{..} =
-    [ "-P"
+    [ "-s"
+    , show stateImplementation
+    , "-P"
     , show pcapParserName
     , "-b"
     , show bufferBytes
@@ -40,8 +43,8 @@ toArgs PerformanceTunables{..} =
     , show readBufferBytes
     ]
 
-cli :: Int -> Parser Options
-cli defaultBufferSize =
+cli :: Parser Options
+cli =
     Options
         -- server options
         <$> parserOptionGroup
@@ -72,6 +75,15 @@ cli defaultBufferSize =
             ( PerformanceTunables
                 <$> option
                     auto
+                    ( long "stateimpl"
+                        <> short 's'
+                        <> help "State implementation to use"
+                        <> showDefault
+                        <> value IORef
+                        <> metavar "STATEIMPL"
+                    )
+                <*> option
+                    auto
                     ( long "parser"
                         <> short 'P'
                         <> help "Pcap parser to use"
@@ -85,7 +97,7 @@ cli defaultBufferSize =
                         <> short 'b'
                         <> help "Size of send buffer in bytes"
                         <> showDefault
-                        <> value defaultBufferSize
+                        <> value (64 * 1024)
                         <> metavar "BUFFER"
                     )
                 <*> option
@@ -106,12 +118,12 @@ cli defaultBufferSize =
         -- required arguments
         <*> some (argument str (metavar "CMD..."))
 
-parseCli :: Int -> IO Options
-parseCli defaultBufferSize = execParser opts
+parseCli :: IO Options
+parseCli = execParser opts
   where
     opts =
         info
-            (cli defaultBufferSize <**> helper)
+            (cli <**> helper)
             ( fullDesc
                 <> footer "The performance tunable defaults have been chosen by benchmarking"
             )

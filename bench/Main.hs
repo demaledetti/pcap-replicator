@@ -43,18 +43,32 @@ parsersUnderTest =
 -- XXX None works only for Prog benchmarks
 parsersUnderTestProg = parsersUnderTest -- <> [None]
 
+stateImplsUnderTest :: [StateImplementationName]
+stateImplsUnderTest =
+    [ IORef
+    -- , StateT
+    ]
+
 combinations, combinationsProg :: [PerformanceTunables]
-combinations = PerformanceTunables <$> parsersUnderTest <*> [k 64] <*> [k 32]
-combinationsProg = PerformanceTunables <$> parsersUnderTestProg <*> [k 64] <*> [k 32]
+combinations =
+    PerformanceTunables
+        <$> stateImplsUnderTest
+        <*> parsersUnderTest
+        <*> [k 64]
+        <*> [k 32]
+combinationsProg =
+    PerformanceTunables
+        <$> stateImplsUnderTest
+        <*> parsersUnderTestProg
+        <*> [k 64]
+        <*> [k 32]
 
 bestParserUnderTest :: String
 bestParserUnderTest = "Unfold"
 
-progsUnderTest :: [String]
-progsUnderTest =
-    [ "ioref"
-    -- , "statet"
-    ]
+bestBufferSize :: StateImplementationName -> Int
+bestBufferSize IORef = k 64
+bestBufferSize StateT = k 256
 
 compareWithBaseline :: String -> String -> String -> Benchmark -> Benchmark
 compareWithBaseline group name baseline benchmark =
@@ -170,7 +184,7 @@ makeProgBenchGroup group baseline app bbpath =
             bgroup
                 group
                 ( makeProgBench baseline []
-                    : concatMap (\impl -> multiProgBench (app <> "-" <> impl)) progsUnderTest
+                    : multiProgBench app
                 )
 
 progParse, progSend :: String -> Benchmark

@@ -2,7 +2,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 
-module Main where
+module PcapReplicator.State.IORef (main) where
 
 -- import Control.Concurrent.Async (race_)
 import Control.Monad (forever)
@@ -29,11 +29,9 @@ data App = App
 bestBufferSizeForIORefImpl :: Int
 bestBufferSizeForIORefImpl = 64 * 1024
 
-main :: IO ()
-main = do
-    options <- parseCli bestBufferSizeForIORefImpl
-    print options
-    app <- App options stdoutIOTextTracer <$> newIORef Stream.nil
+main :: Options -> TracerIOIOT -> IO ()
+main config tracer = do
+    app <- App config tracer <$> newIORef Stream.nil
     drain $
         Stream.take 1 $
             Stream.parSequence (Stream.eager True) $

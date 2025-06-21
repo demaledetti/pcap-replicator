@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Main where
+module PcapReplicator.State.StateT (main) where
 
 import Control.Monad (void)
 import Control.Monad.Catch qualified as E
@@ -40,12 +40,9 @@ data ProgramState = Run | Done deriving (Eq)
 bestBufferSizeForStateTImpl :: Int
 bestBufferSizeForStateTImpl = 256 * 1024
 
-main :: IO ()
-main = do
-    options <- parseCli bestBufferSizeForStateTImpl
-    print options
-
-    let app = App options stdoutIOTextTracer Stream.nil (Array.fromList [])
+main :: Options -> TracerIOIOT -> IO ()
+main config tracer = do
+    let app = App config tracer Stream.nil (Array.fromList [])
         runApp =
             drain . Stream.takeWhile (== Run) $
                 Stream.mapM onEvent $

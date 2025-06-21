@@ -3,7 +3,7 @@
 run_fourmolu_on_all_hs_files() {
   local otherargs=$1
   echo "Running fourmolu on all hs files with extra args: ${otherargs}"
-  for i in $(find app-* bench src -name '*hs') Setup.hs
+  for i in $(find app bench src -name '*hs') Setup.hs
   do
     fourmolu --quiet --mode inplace $otherargs $i
   done

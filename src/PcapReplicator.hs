@@ -7,6 +7,7 @@ module PcapReplicator (
     PcapParser,
     PcapParserName (..),
     PcapStreamHeaderA,
+    StateImplementationName (..),
     StreamOfBytesA,
     drain,
 ) where
@@ -23,6 +24,11 @@ import Streamly.Internal.Data.Fold qualified as Fold
 import System.IO (Handle)
 
 import PcapReplicator.Network
+
+data StateImplementationName
+    = IORef
+    | StateT
+    deriving (Read, Show)
 
 data PcapParserName
     = Unfold

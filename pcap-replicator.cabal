@@ -17,7 +17,7 @@ license-file:   LICENSE
 build-type:     Simple
 tested-with:
     GHC == 9.8.4
-  , GHC == 9.10.2
+  , GHC == 9.10.1
   , GHC == 9.12.2
 extra-source-files:
     README.md
@@ -33,6 +33,7 @@ library
       PcapReplicator
       PcapReplicator.Cli
       PcapReplicator.Log
+      PcapReplicator.Main
       PcapReplicator.Network
       PcapReplicator.Parser
       PcapReplicator.Parser.Binary
@@ -41,6 +42,8 @@ library
       PcapReplicator.Parser.Unfold
       PcapReplicator.Parser.Utils
       PcapReplicator.Process
+      PcapReplicator.State.IORef
+      PcapReplicator.State.StateT
   other-modules:
       Paths_pcap_replicator
   hs-source-dirs:
@@ -55,6 +58,7 @@ library
     , data-textual
     , exceptions
     , fusion-plugin
+    , mtl
     , network
     , network-ip
     , network-simple
@@ -70,41 +74,20 @@ library
     , text
   default-language: GHC2021
 
-executable pcap-replicator-ioref
+executable pcap-replicator
   main-is: Main.hs
   other-modules:
       Paths_pcap_replicator
   hs-source-dirs:
-      app-ioref
+      app
   ghc-options: -Wall -Wunused-packages -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -ddump-simpl -ddump-opt-cmm -dsuppress-uniques -ddump-to-file -fwrite-ide-info -hiedir=.hie -threaded -rtsopts
   build-depends:
       base >=4.7 && <5
     , fusion-plugin
     , pcap-replicator
-    , streamly
-    , streamly-core
   default-language: GHC2021
 
-executable pcap-replicator-statet
-  main-is: Main.hs
-  other-modules:
-      Paths_pcap_replicator
-  hs-source-dirs:
-      app-statet
-  ghc-options: -Wall -Wunused-packages -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -ddump-simpl -ddump-opt-cmm -dsuppress-uniques -ddump-to-file -fwrite-ide-info -hiedir=.hie -threaded -rtsopts
-  build-depends:
-      base >=4.7 && <5
-    , contra-tracer
-    , exceptions
-    , fusion-plugin
-    , mtl
-    , network
-    , pcap-replicator
-    , streamly
-    , streamly-core
-  default-language: GHC2021
-
-benchmark pcap-replicator
+benchmark pcap-replicator-bench
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
@@ -113,8 +96,7 @@ benchmark pcap-replicator
       bench
   ghc-options: -Wall -Wunused-packages -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16 -fplugin Fusion.Plugin -ddump-simpl -ddump-opt-cmm -dsuppress-uniques -ddump-to-file -fwrite-ide-info -hiedir=.hie -threaded -rtsopts
   build-tools:
-      pcap-replicator-ioref
-    , pcap-replicator-statet
+      pcap-replicator
   build-depends:
       base >=4.7 && <5
     , bytestring

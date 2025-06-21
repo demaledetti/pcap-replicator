@@ -22,8 +22,6 @@ tested-with:
 dependencies:
 - base >= 4.7 && < 5
 - fusion-plugin
-- streamly
-- streamly-core
 
 ghc-options:
 - -Wall
@@ -57,6 +55,7 @@ library:
   - contra-tracer
   - data-textual
   - exceptions
+  - mtl
   - network
   - network-ip
   - network-simple
@@ -66,35 +65,25 @@ library:
   - streaming
   - streaming-attoparsec
   - streaming-bytestring
+  - streamly
   - streamly-bytestring >= 0.2.1
+  - streamly-core
   # - streamly-process
   - text
 
 executables:
-  pcap-replicator-ioref:
+  pcap-replicator:
     main:                Main.hs
-    source-dirs:         app-ioref
+    source-dirs:         app
     dependencies:
     - pcap-replicator
     ghc-options:
     - -threaded
     - -rtsopts
     #- -with-rtsopts=-N2
-  pcap-replicator-statet:
-    main:                Main.hs
-    source-dirs:         app-statet
-    dependencies:
-    - contra-tracer
-    - exceptions
-    - pcap-replicator
-    - mtl
-    - network
-    ghc-options:
-    - -threaded
-    - -rtsopts
 
 benchmarks:
-  pcap-replicator:
+  pcap-replicator-bench:
     main:                Main.hs
     source-dirs:         bench
     dependencies:
@@ -102,12 +91,13 @@ benchmarks:
     - filepath
     - pcap-replicator
     - process
+    - streamly
+    - streamly-core
     - tasty
     - tasty-bench
     build-tools:
-    - pcap-replicator:pcap-replicator-ioref
-    - pcap-replicator:pcap-replicator-statet
+    - pcap-replicator:pcap-replicator
+    - pcap-replicator:pcap-replicator
     ghc-options:
     - -threaded
     - -rtsopts
-
