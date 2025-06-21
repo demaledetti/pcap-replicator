@@ -3,7 +3,7 @@
 module PcapReplicator.Cli (Options (..), parseCli, PerformanceTunables (..), ServerOptions (..), toArgs) where
 
 import Data.Textual (toString)
-import Network.IP.Addr
+import Network.IP.Addr (IP, IP46 (..), anyIP6)
 import Network.Socket (PortNumber)
 import Options.Applicative
 
