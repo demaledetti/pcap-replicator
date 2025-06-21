@@ -2,7 +2,8 @@
 
 module PcapReplicator.Cli (Options (..), parseCli, PerformanceTunables (..), ServerOptions (..), toArgs) where
 
-import HaskellWorks.Data.Network.Ip.Ipv4 (IpAddress (..))
+import Data.Textual (toString)
+import Network.IP.Addr
 import Network.Socket (PortNumber)
 import Options.Applicative
 
@@ -17,7 +18,7 @@ data Options = Options
     deriving (Show)
 
 data ServerOptions = ServerOptions
-    { ip :: !IpAddress
+    { ip :: !IP
     , port :: !PortNumber
     }
     deriving (Show)
@@ -51,8 +52,8 @@ cli defaultBufferSize =
                     ( long "ip"
                         <> short 'i'
                         <> help "IP address to listen to"
-                        <> showDefault
-                        <> value (IpAddress 0)
+                        <> showDefaultWith toString
+                        <> value (IPv6 anyIP6)
                         <> metavar "IP"
                     )
                 <*> option

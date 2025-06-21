@@ -17,7 +17,7 @@ license-file:   LICENSE
 build-type:     Simple
 tested-with:
     GHC == 9.8.4
-  , GHC == 9.10.1
+  , GHC == 9.10.2
   , GHC == 9.12.2
 extra-source-files:
     README.md
@@ -52,10 +52,11 @@ library
     , binary
     , bytestring
     , contra-tracer
+    , data-textual
     , exceptions
     , fusion-plugin
-    , hw-ip >=2.4.2.0
     , network
+    , network-ip
     , network-simple
     , optparse-applicative >=0.19
     , process

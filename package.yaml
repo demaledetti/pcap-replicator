@@ -55,9 +55,10 @@ library:
   - binary
   - bytestring
   - contra-tracer
+  - data-textual
   - exceptions
-  - hw-ip >= 2.4.2.0
   - network
+  - network-ip
   - network-simple
   - optparse-applicative >= 0.19
   - process
