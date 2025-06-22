@@ -89,29 +89,37 @@ instance IsOption PacketMillions where
     optionName = pure "packet-millions"
     optionHelp = pure "Millions of packets used in benchmarks"
 
+data BenchEnv = BenchEnv
+    { packetMillions :: !Int
+    , pcapFilePath :: !FilePath
+    , benchmarkBinaryPath :: !FilePath
+    }
 main :: IO ()
 main = do
     benchmarkBinaryPath <- getExecutablePath
     rtDirPath <- fromMaybe "." <$> lookupEnv "XDG_RUNTIME_DIR"
     let customOpts = [Option (Proxy :: Proxy PacketMillions)]
         ingredients = includingOptions customOpts : benchIngredients
-        benchmarks = askOption $ \(PacketMillions pm) ->
+        benchmarks = askOption $ \(PacketMillions packetMillions) ->
             let
-                pcapFilePath = rtDirPath </> "test" <> show pm <> ".pcap"
+                pcapFilePath = rtDirPath </> "test" <> show packetMillions <> ".pcap"
+                benchEnv = BenchEnv{..}
              in
                 testGroup
                     "All"
-                    [ fileParse pcapFilePath pm
-                    , streamParse pcapFilePath pm
-                    , progParse benchmarkBinaryPath pm
-                    , progSend benchmarkBinaryPath pm
-                    ]
+                    ( [ fileParse
+                      , streamParse
+                      , progParse
+                      , progSend
+                      ]
+                        <*> [benchEnv]
+                    )
     defaultMainWithIngredients ingredients benchmarks
 
 makeParseBench
-    :: String -> (FilePath -> Int -> BenchBuilder) -> FilePath -> Int -> Benchmark
-makeParseBench name action pcapFilePath pm =
-    makeBenchGroup name bestParserUnderTest $ action pcapFilePath pm
+    :: String -> (BenchEnv -> BenchBuilder) -> BenchEnv -> Benchmark
+makeParseBench name action =
+    makeBenchGroup name bestParserUnderTest . action
 
 makeBenchGroup :: String -> String -> BenchBuilder -> Benchmark
 makeBenchGroup group baseline builder =
@@ -123,13 +131,13 @@ makeBenchGroup group baseline builder =
             benchmark = bench name $ whnfIO $ builder parse
          in compareWithBaseline group name baseline benchmark
 
-fileParse, streamParse :: FilePath -> Int -> Benchmark
+fileParse, streamParse :: BenchEnv -> Benchmark
 fileParse = makeParseBench "FileParse" parseFile
 streamParse = makeParseBench "StreamParse" parseStream
 
-parseFile :: FilePath -> Int -> PcapParser -> IO ()
-parseFile path packetMillions parse = do
-    withBinaryFile path ReadMode $ \handle -> do
+parseFile :: BenchEnv -> PcapParser -> IO ()
+parseFile BenchEnv{..} parse = do
+    withBinaryFile pcapFilePath ReadMode $ \handle -> do
         void $ BS.hGet handle 24
         result <- Stream.fold Fold.length $ parse readChunkLength handle
         when (result /= packetMillions * aMillion) $
@@ -137,10 +145,10 @@ parseFile path packetMillions parse = do
   where
     readChunkLength = 32 * 1024
 
-parseStream :: FilePath -> Int -> PcapParser -> IO ()
-parseStream path packetMillions parse = do
+parseStream :: BenchEnv -> PcapParser -> IO ()
+parseStream BenchEnv{..} parse = do
     PcapProcess{..} <-
-        pcapProcess ("cat " ++ path) parse chunkLength readChunkLength
+        pcapProcess ("cat " ++ pcapFilePath) parse chunkLength readChunkLength
     mFirst <- Stream.uncons pcapPacketStream
     case mFirst of
         Just (chunk, rest) -> do
@@ -164,8 +172,8 @@ parseStream path packetMillions parse = do
     packets = packetMillions * aMillion
     sourceLength = packetLength * packets
 
-makeProgBenchGroup :: String -> String -> String -> String -> Int -> Benchmark
-makeProgBenchGroup group baseline app bbpath pm =
+makeProgBenchGroup :: String -> String -> String -> BenchEnv -> Benchmark
+makeProgBenchGroup group baseline app BenchEnv{..} =
     localOption WallTime $
         let
             makeProgBench :: String -> [String] -> Benchmark
@@ -175,7 +183,8 @@ makeProgBenchGroup group baseline app bbpath pm =
                         bench nameWithArgs $
                             whnfIO $
                                 callProcess "./bench.sh" $
-                                    [name, "-s", show pm, "-q", "-b", bbpath, "--"] ++ appArgs
+                                    [name, "-s", show packetMillions, "-q", "-b", benchmarkBinaryPath, "--"]
+                                        ++ appArgs
                  in compareWithBaseline group name baseline benchmark
 
             multiProgBench :: String -> [Benchmark]
@@ -187,7 +196,7 @@ makeProgBenchGroup group baseline app bbpath pm =
                     : multiProgBench app
                 )
 
-progParse, progSend :: String -> Int -> Benchmark
+progParse, progSend :: BenchEnv -> Benchmark
 progParse = makeProgBenchGroup "ProgParse" "tcpdump" "app"
 progSend = makeProgBenchGroup "ProgSend" "tcpdump_tcpdump" "app_tcpdump"
 
