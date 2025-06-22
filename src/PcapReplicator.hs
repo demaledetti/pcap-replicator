@@ -5,7 +5,6 @@ module PcapReplicator (
     sendToAll,
     PcapPacketA,
     PcapParser,
-    PcapParserName (..),
     PcapStreamHeaderA,
     StateImplementationName (..),
     StreamOfBytesA,
@@ -28,13 +27,6 @@ import PcapReplicator.Network
 data StateImplementationName
     = IORef
     | StateT
-    deriving (Read, Show)
-
-data PcapParserName
-    = Unfold
-    | StreamingAttoparsec
-    | Binary
-    | None
     deriving (Read, Show)
 
 type BytesA = Array.Array Word8

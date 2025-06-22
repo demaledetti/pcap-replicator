@@ -17,7 +17,7 @@ import PcapReplicator
 import PcapReplicator.Cli
 import PcapReplicator.Log
 import PcapReplicator.Network
-import PcapReplicator.Parser (getParser)
+import PcapReplicator.Parser
 import PcapReplicator.Process
 
 data App = App
@@ -74,7 +74,7 @@ source App{..} = Stream.unfoldrM step Nothing
   where
     cmdLine = unwords config.cmd
     PerformanceTunables{..} = config.tunables
-    parser = getParser pcapParserName
+    parser = pcapParserImplementation.parser
     step Nothing = do
         -- liftIO $ print "Start process"
         pp@PcapProcess{..} <-

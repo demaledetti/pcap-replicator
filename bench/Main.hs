@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Main where
@@ -28,20 +29,21 @@ import Test.Tasty.Patterns.Printer (printAwkExpr)
 
 import PcapReplicator
 import PcapReplicator.Cli (PerformanceTunables (..), toArgs)
-import PcapReplicator.Parser (getParser)
+import PcapReplicator.Parser
 import PcapReplicator.Process (PcapProcess (..), pcapProcess)
 import System.Environment (getExecutablePath, lookupEnv)
 
-type BenchBuilder = PcapParser -> IO ()
+type BenchBuilder = BenchEnv -> PerformanceTunables -> IO ()
 
-parsersUnderTest, parsersUnderTestProg :: [PcapParserName]
+parsersUnderTest, parsersUnderTestProg :: [PcapParserImplementation]
 parsersUnderTest =
-    [ Unfold
-    , StreamingAttoparsec
-    -- , Binary
-    ]
+    mkPcapParserImplementation
+        <$> [ Unfold
+            , StreamingAttoparsec
+            -- , Binary
+            ]
 -- XXX None works only for Prog benchmarks
-parsersUnderTestProg = parsersUnderTest -- <> [None]
+parsersUnderTestProg = parsersUnderTest -- <> [mkPcapParserImplementation None]
 
 stateImplsUnderTest :: [StateImplementationName]
 stateImplsUnderTest =
@@ -116,61 +118,20 @@ main = do
                     )
     defaultMainWithIngredients ingredients benchmarks
 
-makeParseBench
-    :: String -> (BenchEnv -> BenchBuilder) -> BenchEnv -> Benchmark
-makeParseBench name action =
-    makeBenchGroup name bestParserUnderTest . action
+fileParse, streamParse, progParse, progSend :: BenchEnv -> Benchmark
+fileParse = makeBenchGroup "FileParse" parseFile
+streamParse = makeBenchGroup "StreamParse" parseStream
+progParse = makeProgBenchGroup "ProgParse" "tcpdump" "app"
+progSend = makeProgBenchGroup "ProgSend" "tcpdump_tcpdump" "app_tcpdump"
 
-makeBenchGroup :: String -> String -> BenchBuilder -> Benchmark
-makeBenchGroup group baseline builder =
+makeBenchGroup :: String -> BenchBuilder -> BenchEnv -> Benchmark
+makeBenchGroup group builder benv =
     bgroup group $ single <$> combinations
   where
-    single PerformanceTunables{..} =
-        let parse = getParser pcapParserName
-            name = show pcapParserName
-            benchmark = bench name $ whnfIO $ builder parse
-         in compareWithBaseline group name baseline benchmark
-
-fileParse, streamParse :: BenchEnv -> Benchmark
-fileParse = makeParseBench "FileParse" parseFile
-streamParse = makeParseBench "StreamParse" parseStream
-
-parseFile :: BenchEnv -> PcapParser -> IO ()
-parseFile BenchEnv{..} parse = do
-    withBinaryFile pcapFilePath ReadMode $ \handle -> do
-        void $ BS.hGet handle 24
-        result <- Stream.fold Fold.length $ parse readChunkLength handle
-        when (result /= packetMillions * aMillion) $
-            error ("Wrong result: " ++ show result)
-  where
-    readChunkLength = 32 * 1024
-
-parseStream :: BenchEnv -> PcapParser -> IO ()
-parseStream BenchEnv{..} parse = do
-    PcapProcess{..} <-
-        pcapProcess ("cat " ++ pcapFilePath) parse chunkLength readChunkLength
-    mFirst <- Stream.uncons pcapPacketStream
-    case mFirst of
-        Just (chunk, rest) -> do
-            let chunkLen = A.length chunk
-            when (chunkLen `rem` packetLength /= 0) $
-                error $
-                    "Chunk size is not a multiple of packet size: " ++ show chunkLen
-            result <- Stream.fold Fold.length rest
-            when
-                ( sourceLength `quot` chunkLen
-                    + (if sourceLength `rem` chunkLen == 0 then 0 else 1)
-                    /= result + 1
-                )
-                $ error
-                $ "Wrong number of chunks: " ++ show (result + 1)
-        Nothing -> error "Empty stream"
-  where
-    chunkLength = 64 * 1024
-    readChunkLength = 32 * 1024
-    packetLength = 66
-    packets = packetMillions * aMillion
-    sourceLength = packetLength * packets
+    single pt@PerformanceTunables{..} =
+        let name = show pcapParserImplementation.name
+            benchmark = bench name $ whnfIO $ builder benv pt
+         in compareWithBaseline group name bestParserUnderTest benchmark
 
 makeProgBenchGroup :: String -> String -> String -> BenchEnv -> Benchmark
 makeProgBenchGroup group baseline app BenchEnv{..} =
@@ -196,9 +157,43 @@ makeProgBenchGroup group baseline app BenchEnv{..} =
                     : multiProgBench app
                 )
 
-progParse, progSend :: BenchEnv -> Benchmark
-progParse = makeProgBenchGroup "ProgParse" "tcpdump" "app"
-progSend = makeProgBenchGroup "ProgSend" "tcpdump_tcpdump" "app_tcpdump"
+parseFile :: BenchBuilder
+parseFile BenchEnv{..} PerformanceTunables{..} = do
+    withBinaryFile pcapFilePath ReadMode $ \handle -> do
+        void $ BS.hGet handle 24
+        result <-
+            Stream.fold Fold.length $ pcapParserImplementation.parser readBufferBytes handle
+        when (result /= packetMillions * aMillion) $
+            error ("Wrong result: " ++ show result)
+
+parseStream :: BenchBuilder
+parseStream BenchEnv{..} PerformanceTunables{..} = do
+    PcapProcess{..} <-
+        pcapProcess
+            ("cat " ++ pcapFilePath)
+            pcapParserImplementation.parser
+            bufferBytes
+            readBufferBytes
+    mFirst <- Stream.uncons pcapPacketStream
+    case mFirst of
+        Just (chunk, rest) -> do
+            let chunkLength = A.length chunk
+            when (chunkLength `rem` packetLength /= 0) $
+                error $
+                    "Chunk size is not a multiple of packet size: " ++ show chunkLength
+            result <- Stream.fold Fold.length rest
+            when
+                ( sourceLength `quot` chunkLength
+                    + (if sourceLength `rem` chunkLength == 0 then 0 else 1)
+                    /= result + 1
+                )
+                $ error
+                $ "Wrong number of chunks: " ++ show (result + 1)
+        Nothing -> error "Empty stream"
+  where
+    packetLength = 66
+    packets = packetMillions * aMillion
+    sourceLength = packetLength * packets
 
 k :: Int -> Int
 k = (* 1024)

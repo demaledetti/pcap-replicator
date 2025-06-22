@@ -6,8 +6,10 @@ import Data.Textual (toString)
 import Network.IP.Addr (IP, IP46 (..), anyIP6)
 import Network.Socket (PortNumber)
 import Options.Applicative
+import Text.Read (readMaybe)
 
 import PcapReplicator
+import PcapReplicator.Parser
 
 data Options = Options
     { server :: !ServerOptions
@@ -25,7 +27,7 @@ data ServerOptions = ServerOptions
 
 data PerformanceTunables = PerformanceTunables
     { stateImplementation :: !StateImplementationName
-    , pcapParserName :: !PcapParserName
+    , pcapParserImplementation :: !PcapParserImplementation
     , bufferBytes :: !Int
     , readBufferBytes :: !Int
     }
@@ -36,7 +38,7 @@ toArgs PerformanceTunables{..} =
     [ "-s"
     , show stateImplementation
     , "-P"
-    , show pcapParserName
+    , show pcapParserImplementation
     , "-b"
     , show bufferBytes
     , "-r"
@@ -83,12 +85,12 @@ cli =
                         <> metavar "STATEIMPL"
                     )
                 <*> option
-                    auto
+                    (maybeReader (fmap mkPcapParserImplementation . readMaybe))
                     ( long "parser"
                         <> short 'P'
                         <> help "Pcap parser to use"
                         <> showDefault
-                        <> value Unfold
+                        <> value (mkPcapParserImplementation Unfold)
                         <> metavar "PARSER"
                     )
                 <*> option

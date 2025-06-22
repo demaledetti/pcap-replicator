@@ -14,7 +14,7 @@ import PcapReplicator
 import PcapReplicator.Cli
 import PcapReplicator.Log
 import PcapReplicator.Network
-import PcapReplicator.Parser (getParser)
+import PcapReplicator.Parser
 import PcapReplicator.Process
 
 data App = App
@@ -51,7 +51,7 @@ source App{..} = if config.once then once else forever go
   where
     cmdLine = unwords config.cmd
     PerformanceTunables{..} = config.tunables
-    parser = getParser pcapParserName
+    parser = pcapParserImplementation.parser
 
     go = do
         PcapProcess{..} <-
