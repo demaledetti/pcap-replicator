@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module PcapReplicator.Cli (Options (..), parseCli, PerformanceTunables (..), ServerOptions (..), toArgs) where
@@ -28,8 +29,8 @@ data ServerOptions = ServerOptions
 data PerformanceTunables = PerformanceTunables
     { stateImplementation :: !StateImplementationName
     , pcapParserImplementation :: !PcapParserImplementation
-    , bufferBytes :: !Int
-    , readBufferBytes :: !Int
+    , bufferBytes :: !WriteBufferBytes
+    , readBufferBytes :: !ReadBufferBytes
     }
     deriving (Show)
 
@@ -40,9 +41,9 @@ toArgs PerformanceTunables{..} =
     , "-P"
     , show pcapParserImplementation
     , "-b"
-    , show bufferBytes
+    , show bufferBytes.getWriteBufferBytes
     , "-r"
-    , show readBufferBytes
+    , show readBufferBytes.getReadBufferBytes
     ]
 
 cli :: Parser Options
@@ -99,7 +100,7 @@ cli =
                         <> short 'b'
                         <> help "Size of send buffer in bytes"
                         <> showDefault
-                        <> value (64 * 1024)
+                        <> value (WriteBufferBytes $ 64 * 1024)
                         <> metavar "BUFFER"
                     )
                 <*> option
@@ -108,7 +109,7 @@ cli =
                         <> short 'r'
                         <> help "Size of read buffer in bytes"
                         <> showDefault
-                        <> value (32 * 1024)
+                        <> value (ReadBufferBytes $ 32 * 1024)
                         <> metavar "RBUFFER"
                     )
             )

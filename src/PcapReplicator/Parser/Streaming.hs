@@ -16,7 +16,7 @@ parse :: PcapParser
 parse = parse' packet
 
 parse' :: A.Parser PcapPacketA -> PcapParser
-parse' parser readBufferBytes handle = Stream.unfoldrM Streaming.uncons streamFromHandle
+parse' parser (ReadBufferBytes readBufferBytes) handle = Stream.unfoldrM Streaming.uncons streamFromHandle
   where
     -- The following bits are humbly adapted from
     -- <https://hackage.haskell.org/package/streaming-pcap streaming-pcap> by Colin Woodbury

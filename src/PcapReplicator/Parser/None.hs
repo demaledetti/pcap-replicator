@@ -5,4 +5,4 @@ import Streamly.FileSystem.Handle qualified as H
 import PcapReplicator
 
 parse :: PcapParser
-parse = H.readChunksWith
+parse = H.readChunksWith . getReadBufferBytes

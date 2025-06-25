@@ -23,8 +23,9 @@ data PcapProcess = PcapProcess
     , pcapPacketStream :: !StreamOfBytesA
     }
 
-pcapProcess :: String -> PcapParser -> Int -> Int -> IO PcapProcess
-pcapProcess cmdLine parser bufferBytes readBufferBytes = do
+pcapProcess
+    :: String -> PcapParser -> WriteBufferBytes -> ReadBufferBytes -> IO PcapProcess
+pcapProcess cmdLine parser (WriteBufferBytes bufferBytes) readBufferBytes = do
     (_, Just stdoutHandle, _, processHandle) <-
         createProcess (shell cmdLine){std_out = CreatePipe}
     hSetBinaryMode stdoutHandle True

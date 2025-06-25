@@ -37,9 +37,6 @@ data Event
     | SourceFinished
 data ProgramState = Run | Done deriving (Eq)
 
-bestBufferSizeForStateTImpl :: Int
-bestBufferSizeForStateTImpl = 256 * 1024
-
 main :: Options -> TracerIOIOT -> IO ()
 main config tracer = do
     let app = App config tracer Stream.nil (Array.fromList [])

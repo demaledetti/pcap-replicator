@@ -1,3 +1,5 @@
+{-# LANGUAGE DerivingVia #-}
+
 module PcapReplicator (
     BytesA,
     Client (New),
@@ -6,8 +8,10 @@ module PcapReplicator (
     PcapPacketA,
     PcapParser,
     PcapStreamHeaderA,
+    ReadBufferBytes (..),
     StateImplementationName (..),
     StreamOfBytesA,
+    WriteBufferBytes (..),
     drain,
 ) where
 
@@ -29,18 +33,27 @@ data StateImplementationName
     | StateT
     deriving (Read, Show)
 
+newtype ReadBufferBytes = ReadBufferBytes {getReadBufferBytes :: Int}
+    deriving (Read, Show) via Int
+newtype WriteBufferBytes = WriteBufferBytes {getWriteBufferBytes :: Int}
+    deriving (Read, Show) via Int
+
 type BytesA = Array.Array Word8
 type PcapStreamHeaderA = BytesA
 type PcapPacketA = BytesA
 type StreamOfBytesA = Stream.Stream IO BytesA
-type PcapParser = Int -> Handle -> StreamOfBytesA
+type PcapParser = ReadBufferBytes -> Handle -> StreamOfBytesA
 
 data Client = New !Socket | Old !Socket
 type Clients = Stream.Stream Identity Client
 
 sendToAll
     :: (Stream.MonadAsync m, E.MonadCatch m)
-    => Tracer m (IO Text) -> PcapStreamHeaderA -> PcapPacketA -> Clients -> m Clients
+    => Tracer m (IO Text)
+    -> PcapStreamHeaderA
+    -> PcapPacketA
+    -> Clients
+    -> m Clients
 sendToAll tracer header packet clients =
     Stream.fold
         Fold.toStream

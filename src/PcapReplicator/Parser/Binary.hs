@@ -29,7 +29,7 @@ getPacket = do
     pure $! Strict.toArray packet
 
 parse' :: Get BytesA -> PcapParser
-parse' parser readBufferBytes handle = Stream.unfoldrM feed decoder
+parse' parser (ReadBufferBytes readBufferBytes) handle = Stream.unfoldrM feed decoder
   where
     decoder = runGetIncremental parser
 

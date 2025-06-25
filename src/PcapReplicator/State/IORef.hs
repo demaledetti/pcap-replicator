@@ -26,9 +26,6 @@ data App = App
       clients :: !(IORef Clients)
     }
 
-bestBufferSizeForIORefImpl :: Int
-bestBufferSizeForIORefImpl = 64 * 1024
-
 main :: Options -> TracerIOIOT -> IO ()
 main config tracer = do
     app <- App config tracer <$> newIORef Stream.nil

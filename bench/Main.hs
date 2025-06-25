@@ -33,7 +33,18 @@ import PcapReplicator.Parser
 import PcapReplicator.Process (PcapProcess (..), pcapProcess)
 import System.Environment (getExecutablePath, lookupEnv)
 
-type BenchBuilder = BenchEnv -> PerformanceTunables -> IO ()
+type BenchBuilder a = BenchEnv -> a -> IO ()
+
+data ParseFileTunables = ParseFileTunables !PcapParserImplementation !ReadBufferBytes
+data ParseStreamTunables
+    = ParseStreamTunables !PcapParserImplementation !WriteBufferBytes !ReadBufferBytes
+
+instance Show ParseFileTunables where
+    show (ParseFileTunables parserImpl (ReadBufferBytes rbb)) =
+        unwords [show parserImpl, "-r", show rbb]
+instance Show ParseStreamTunables where
+    show (ParseStreamTunables parserImpl (WriteBufferBytes wbb) (ReadBufferBytes rbb)) =
+        unwords [show parserImpl, "-b", show wbb, "-r", show rbb]
 
 parsersUnderTest, parsersUnderTestProg :: [PcapParserImplementation]
 parsersUnderTest =
@@ -51,26 +62,41 @@ stateImplsUnderTest =
     -- , StateT
     ]
 
-combinations, combinationsProg :: [PerformanceTunables]
-combinations =
-    PerformanceTunables
-        <$> stateImplsUnderTest
-        <*> parsersUnderTest
-        <*> [k 64]
-        <*> [k 32]
+parseFileTunables :: [ParseFileTunables]
+parseFileTunables =
+    ParseFileTunables
+        <$> parsersUnderTest
+        <*> fmap ReadBufferBytes [k 32]
+
+parseStreamTunables :: [ParseStreamTunables]
+parseStreamTunables =
+    ParseStreamTunables
+        <$> parsersUnderTestProg
+        <*> fmap WriteBufferBytes [k 64]
+        <*> fmap ReadBufferBytes [k 32]
+
+combinationsProg :: [PerformanceTunables]
 combinationsProg =
     PerformanceTunables
         <$> stateImplsUnderTest
         <*> parsersUnderTestProg
-        <*> [k 64]
-        <*> [k 32]
+        <*> fmap WriteBufferBytes [k 64]
+        <*> fmap ReadBufferBytes [k 32]
 
-bestParserUnderTest :: String
-bestParserUnderTest = "Unfold"
+bestParseFileTunable :: ParseFileTunables
+bestParseFileTunable =
+    ParseFileTunables (mkPcapParserImplementation Unfold) (ReadBufferBytes $ k 32)
 
-bestBufferSize :: StateImplementationName -> Int
-bestBufferSize IORef = k 64
-bestBufferSize StateT = k 256
+bestParseStreamTunable :: ParseStreamTunables
+bestParseStreamTunable =
+    ParseStreamTunables
+        (mkPcapParserImplementation Unfold)
+        (WriteBufferBytes $ k 64)
+        (ReadBufferBytes $ k 32)
+
+bestBufferSize :: StateImplementationName -> WriteBufferBytes
+bestBufferSize IORef = WriteBufferBytes $ k 64
+bestBufferSize StateT = WriteBufferBytes $ k 256
 
 compareWithBaseline :: String -> String -> String -> Benchmark -> Benchmark
 compareWithBaseline group name baseline benchmark =
@@ -119,19 +145,25 @@ main = do
     defaultMainWithIngredients ingredients benchmarks
 
 fileParse, streamParse, progParse, progSend :: BenchEnv -> Benchmark
-fileParse = makeBenchGroup "FileParse" parseFile
-streamParse = makeBenchGroup "StreamParse" parseStream
+fileParse = makeBenchGroup "FileParse" parseFile bestParseFileTunable parseFileTunables
+streamParse =
+    makeBenchGroup
+        "StreamParse"
+        parseStream
+        bestParseStreamTunable
+        parseStreamTunables
 progParse = makeProgBenchGroup "ProgParse" "tcpdump" "app"
 progSend = makeProgBenchGroup "ProgSend" "tcpdump_tcpdump" "app_tcpdump"
 
-makeBenchGroup :: String -> BenchBuilder -> BenchEnv -> Benchmark
-makeBenchGroup group builder benv =
+makeBenchGroup
+    :: (Show a) => String -> BenchBuilder a -> a -> [a] -> BenchEnv -> Benchmark
+makeBenchGroup group builder baseline combinations benv =
     bgroup group $ single <$> combinations
   where
-    single pt@PerformanceTunables{..} =
-        let name = show pcapParserImplementation.name
+    single pt =
+        let name = show pt
             benchmark = bench name $ whnfIO $ builder benv pt
-         in compareWithBaseline group name bestParserUnderTest benchmark
+         in compareWithBaseline group name (show baseline) benchmark
 
 makeProgBenchGroup :: String -> String -> String -> BenchEnv -> Benchmark
 makeProgBenchGroup group baseline app BenchEnv{..} =
@@ -157,8 +189,8 @@ makeProgBenchGroup group baseline app BenchEnv{..} =
                     : multiProgBench app
                 )
 
-parseFile :: BenchBuilder
-parseFile BenchEnv{..} PerformanceTunables{..} = do
+parseFile :: BenchBuilder ParseFileTunables
+parseFile BenchEnv{..} (ParseFileTunables pcapParserImplementation readBufferBytes) = do
     withBinaryFile pcapFilePath ReadMode $ \handle -> do
         void $ BS.hGet handle 24
         result <-
@@ -166,8 +198,8 @@ parseFile BenchEnv{..} PerformanceTunables{..} = do
         when (result /= packetMillions * aMillion) $
             error ("Wrong result: " ++ show result)
 
-parseStream :: BenchBuilder
-parseStream BenchEnv{..} PerformanceTunables{..} = do
+parseStream :: BenchBuilder ParseStreamTunables
+parseStream BenchEnv{..} (ParseStreamTunables pcapParserImplementation bufferBytes readBufferBytes) = do
     PcapProcess{..} <-
         pcapProcess
             ("cat " ++ pcapFilePath)

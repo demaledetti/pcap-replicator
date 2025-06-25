@@ -9,7 +9,7 @@ import PcapReplicator
 import PcapReplicator.Parser.Utils
 
 parse :: PcapParser
-parse readBufferBytes handle = Stream.unfoldrM feed decoder
+parse (ReadBufferBytes readBufferBytes) handle = Stream.unfoldrM feed decoder
   where
     decoder = Partial processChunk
 
